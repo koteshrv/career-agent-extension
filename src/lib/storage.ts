@@ -1,4 +1,10 @@
-import { CandidateProfile, TrackedApplication, AuthUser, ApplicationStatus } from '../types';
+import {
+  CandidateProfile,
+  TrackedApplication,
+  ExtensionSettings,
+  SyncedProfileSummary,
+  ApplicationStatus,
+} from '../types';
 
 export const DEFAULT_PROFILE: CandidateProfile = {
   firstName: '',
@@ -16,6 +22,15 @@ export const DEFAULT_PROFILE: CandidateProfile = {
   disabilityStatus: 'No',
 };
 
+export const DEFAULT_SETTINGS: ExtensionSettings = {
+  apiKey: '',
+  apiUrl: 'https://api.careeragent.fyi',
+  webAppUrl: 'https://careeragent.fyi',
+  autoTrackOnAutofill: true,
+  notificationsEnabled: true,
+  followUpDays: 3,
+};
+
 // Polyfill-safe storage getter
 function getStorageAPI(): chrome.storage.StorageArea | null {
   if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
@@ -28,7 +43,6 @@ function getStorageAPI(): chrome.storage.StorageArea | null {
   return null;
 }
 
-// In-memory fallback if storage API is unavailable (e.g. unit tests or standard browser)
 const memoryStore = new Map<string, any>();
 
 async function getStorageItem<T>(key: string, defaultValue: T): Promise<T> {
@@ -71,15 +85,26 @@ async function setStorageItem<T>(key: string, value: T): Promise<void> {
 }
 
 // ==========================================
-// Candidate Profile Storage
+// Settings Storage
 // ==========================================
-export async function getProfile(): Promise<CandidateProfile> {
-  const profile = await getStorageItem<CandidateProfile>('careeragent_profile', DEFAULT_PROFILE);
-  return { ...DEFAULT_PROFILE, ...profile };
+export async function getSettings(): Promise<ExtensionSettings> {
+  const settings = await getStorageItem<ExtensionSettings>('careeragent_settings', DEFAULT_SETTINGS);
+  return { ...DEFAULT_SETTINGS, ...settings };
 }
 
-export async function saveProfile(profile: CandidateProfile): Promise<void> {
-  await setStorageItem('careeragent_profile', profile);
+export async function saveSettings(settings: ExtensionSettings): Promise<void> {
+  await setStorageItem('careeragent_settings', settings);
+}
+
+// ==========================================
+// Synced Profile Summary Storage
+// ==========================================
+export async function getSyncedProfile(): Promise<SyncedProfileSummary | null> {
+  return await getStorageItem<SyncedProfileSummary | null>('careeragent_synced_profile', null);
+}
+
+export async function saveSyncedProfile(profile: SyncedProfileSummary | null): Promise<void> {
+  await setStorageItem('careeragent_synced_profile', profile);
 }
 
 // ==========================================
@@ -107,12 +132,12 @@ export async function addApplication(appData: {
   atsType?: string;
   status?: ApplicationStatus;
   notes?: string;
+  followUpDays?: number;
 }): Promise<TrackedApplication> {
   const apps = await getApplications();
   const now = new Date().toISOString();
-  const followUp = calculateFollowUpDate(3);
+  const followUp = calculateFollowUpDate(appData.followUpDays ?? 3);
 
-  // Check if job is already tracked by URL or (company + title)
   const existingIndex = apps.findIndex(
     (a) => (appData.jobUrl && a.jobUrl === appData.jobUrl) ||
            (a.company.toLowerCase() === appData.company.toLowerCase() &&
@@ -139,7 +164,8 @@ export async function addApplication(appData: {
     apps.unshift(newApp);
   }
 
-  await saveApplications(apps);
+  // Keep last 20 recent applications locally
+  await saveApplications(apps.slice(0, 20));
   return newApp;
 }
 
@@ -155,15 +181,15 @@ export async function deleteApplication(id: string): Promise<void> {
   await saveApplications(filtered);
 }
 
-// ==========================================
-// Authentication Storage
-// ==========================================
-export async function getAuth(): Promise<AuthUser | null> {
-  return await getStorageItem<AuthUser | null>('careeragent_auth', null);
+export async function getProfile(): Promise<CandidateProfile> {
+  const synced = await getSyncedProfile();
+  if (synced?.profile) return synced.profile;
+  const profile = await getStorageItem<CandidateProfile>('careeragent_profile', DEFAULT_PROFILE);
+  return { ...DEFAULT_PROFILE, ...profile };
 }
 
-export async function saveAuth(user: AuthUser | null): Promise<void> {
-  await setStorageItem('careeragent_auth', user);
+export async function saveProfile(profile: CandidateProfile): Promise<void> {
+  await setStorageItem('careeragent_profile', profile);
 }
 
 // ==========================================

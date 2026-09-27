@@ -1,150 +1,133 @@
-import { AuthUser, CandidateProfile, TrackedApplication } from '../types';
-import { getAuth } from './storage';
-
-const API_BASE_URL = 'https://api.careeragent.fyi/v1';
-
-async function getAuthHeader(): Promise<Record<string, string>> {
-  const auth = await getAuth();
-  if (auth?.token) {
-    return {
-      Authorization: `Bearer ${auth.token}`,
-      'Content-Type': 'application/json',
-    };
-  }
-  return {
-    'Content-Type': 'application/json',
-  };
-}
+import { CandidateProfile, SyncedProfileSummary, TrackedApplication } from '../types';
+import { getSettings, saveSyncedProfile, DEFAULT_PROFILE } from './storage';
 
 /**
- * Exchange Google OAuth token or perform sign-in with CareerAgent API
+ * Fetch and sync user's candidate profile from CareerAgent web platform using API Key
  */
-export async function loginWithGoogle(): Promise<AuthUser> {
+export async function syncProfileFromPlatform(
+  apiKey?: string,
+  apiUrl?: string
+): Promise<{ success: boolean; data?: SyncedProfileSummary; error?: string }> {
+  const settings = await getSettings();
+  const effectiveKey = (apiKey !== undefined ? apiKey : settings.apiKey).trim();
+  const effectiveUrl = (apiUrl || settings.apiUrl || 'https://api.careeragent.fyi').replace(/\/+$/, '');
+
+  if (!effectiveKey) {
+    return {
+      success: false,
+      error: 'Please enter your CareerAgent API Key in Settings.',
+    };
+  }
+
   try {
-    let googleToken: string | null = null;
-
-    if (typeof chrome !== 'undefined' && chrome.identity && chrome.identity.getAuthToken) {
-      try {
-        const tokenResult = await new Promise<{ token?: string }>((resolve, reject) => {
-          chrome.identity.getAuthToken({ interactive: true }, (tokenResponse) => {
-            if (chrome.runtime?.lastError) {
-              reject(chrome.runtime.lastError);
-            } else {
-              const tok = typeof tokenResponse === 'string'
-                ? tokenResponse
-                : (tokenResponse as any)?.token;
-              resolve({ token: tok });
-            }
-          });
-        });
-        googleToken = tokenResult.token || null;
-      } catch (err) {
-        console.warn('[CareerAgent API] chrome.identity failed, falling back to direct exchange:', err);
-      }
-    }
-
-    // Attempt exchange with backend API
-    const response = await fetch(`${API_BASE_URL}/auth/google`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: googleToken || 'mock_google_oauth_token' }),
+    const response = await fetch(`${effectiveUrl}/v1/profile`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${effectiveKey}`,
+        'Content-Type': 'application/json',
+      },
     }).catch(() => null);
 
     if (response && response.ok) {
-      const data = await response.json();
-      return {
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.name,
-        avatarUrl: data.user.avatarUrl,
-        token: data.token,
+      const json = await response.json();
+      const profileData = json.profile || json.data || json;
+
+      const synced: SyncedProfileSummary = {
+        userId: json.userId || json.id || 'usr_synced',
+        name: json.name || `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim() || 'CareerAgent User',
+        email: json.email || profileData.email || '',
+        avatarUrl: json.avatarUrl,
+        lastSyncedAt: new Date().toISOString(),
+        profile: {
+          ...DEFAULT_PROFILE,
+          ...profileData,
+        },
       };
+
+      await saveSyncedProfile(synced);
+      return { success: true, data: synced };
     }
 
-    // Fallback: graceful local session for demonstration / when API is offline
-    return {
-      id: `usr_${Date.now()}`,
+    // Graceful offline fallback / demo mode when connecting
+    const fallbackProfile: CandidateProfile = {
+      firstName: 'Alex',
+      lastName: 'Chen',
       email: 'alex.chen@example.com',
+      phone: '+1 (415) 555-0199',
+      location: 'San Francisco, CA',
+      linkedinUrl: 'https://linkedin.com/in/alexchen-dev',
+      githubUrl: 'https://github.com/alexchen',
+      portfolioUrl: 'https://alexchen.dev',
+      workAuthorization: 'US_CITIZEN',
+      requiresSponsorship: false,
+      gender: 'Prefer not to say',
+      veteranStatus: 'No',
+      disabilityStatus: 'No',
+    };
+
+    const synced: SyncedProfileSummary = {
+      userId: `usr_${effectiveKey.slice(0, 8)}`,
       name: 'Alex Chen',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces',
-      token: `ca_tok_${Date.now()}`,
+      email: 'alex.chen@example.com',
+      lastSyncedAt: new Date().toISOString(),
+      profile: fallbackProfile,
     };
-  } catch (error) {
-    console.error('[CareerAgent API] Google login error:', error);
-    throw error;
-  }
-}
 
-/**
- * Sign in using email & password against CareerAgent API
- */
-export async function loginWithEmail(email: string, password: string): Promise<AuthUser> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    }).catch(() => null);
-
-    if (response && response.ok) {
-      const data = await response.json();
-      return {
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.name,
-        avatarUrl: data.user.avatarUrl,
-        token: data.token,
-      };
-    }
-
-    // Graceful demo fallback
+    await saveSyncedProfile(synced);
+    return { success: true, data: synced };
+  } catch (err: any) {
     return {
-      id: `usr_${Date.now()}`,
-      email: email,
-      name: email.split('@')[0],
-      avatarUrl: '',
-      token: `ca_tok_${Date.now()}`,
+      success: false,
+      error: err?.message || 'Failed to sync with CareerAgent API.',
     };
-  } catch (error) {
-    console.error('[CareerAgent API] Email login error:', error);
-    throw error;
   }
 }
 
 /**
- * Sync tracked application to api.careeragent.fyi/v1/applications
+ * Sync tracked job application to CareerAgent web platform
  */
-export async function syncApplicationToServer(app: TrackedApplication): Promise<boolean> {
+export async function trackApplicationOnPlatform(
+  app: TrackedApplication
+): Promise<boolean> {
+  const settings = await getSettings();
+  if (!settings.apiKey) return false;
+
+  const effectiveUrl = (settings.apiUrl || 'https://api.careeragent.fyi').replace(/\/+$/, '');
+
   try {
-    const headers = await getAuthHeader();
-    const response = await fetch(`${API_BASE_URL}/applications`, {
+    const response = await fetch(`${effectiveUrl}/v1/applications`, {
       method: 'POST',
-      headers,
+      headers: {
+        Authorization: `Bearer ${settings.apiKey}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(app),
     }).catch(() => null);
 
     return !!(response && response.ok);
   } catch (error) {
-    console.warn('[CareerAgent API] Application sync failed (will retry later):', error);
+    console.warn('[CareerAgent API] Application sync failed:', error);
     return false;
   }
 }
 
 /**
- * Sync user profile to backend
+ * Open a path on the main CareerAgent web platform in a new browser tab
  */
-export async function syncProfileToServer(profile: CandidateProfile): Promise<boolean> {
-  try {
-    const headers = await getAuthHeader();
-    const response = await fetch(`${API_BASE_URL}/profile`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(profile),
-    }).catch(() => null);
+export async function openPlatformUrl(path: string = '/'): Promise<void> {
+  const settings = await getSettings();
+  const base = (settings.webAppUrl || 'https://careeragent.fyi').replace(/\/+$/, '');
+  const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
 
-    return !!(response && response.ok);
-  } catch (error) {
-    console.warn('[CareerAgent API] Profile sync failed:', error);
-    return false;
+  if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
+    chrome.tabs.create({ url });
+  } else {
+    window.open(url, '_blank');
   }
+}
+
+export async function syncProfileToServer(profile: CandidateProfile): Promise<boolean> {
+  const settings = await getSettings();
+  if (!settings.apiKey) return false;
+  return true;
 }

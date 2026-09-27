@@ -60,14 +60,6 @@ export interface TrackedApplication {
   syncedWithServer?: boolean;
 }
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-  avatarUrl?: string;
-  token?: string;
-}
-
 export interface AutofillResult {
   success: boolean;
   fieldsFilled: number;
@@ -76,4 +68,22 @@ export interface AutofillResult {
   details?: Record<string, string>;
 }
 
-export type ExtensionView = 'detect' | 'applications' | 'profile' | 'settings';
+export interface ExtensionSettings {
+  apiKey: string;
+  apiUrl: string;
+  webAppUrl: string;
+  autoTrackOnAutofill: boolean;
+  notificationsEnabled: boolean;
+  followUpDays: number;
+}
+
+export interface SyncedProfileSummary {
+  userId: string;
+  name: string;
+  email: string;
+  avatarUrl?: string;
+  lastSyncedAt: string;
+  profile: CandidateProfile;
+}
+
+export type ExtensionView = 'main' | 'settings';

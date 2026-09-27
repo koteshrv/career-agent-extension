@@ -1,39 +1,37 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  CandidateProfile,
   JobDetails,
   TrackedApplication,
-  AuthUser,
   ExtensionView,
+  ExtensionSettings,
+  SyncedProfileSummary,
   ApplicationStatus,
 } from '../../src/types';
 import {
-  getProfile,
+  getSettings,
+  getSyncedProfile,
   getApplications,
   addApplication,
-  getAuth,
   getTheme,
   saveTheme,
-  DEFAULT_PROFILE,
+  DEFAULT_SETTINGS,
 } from '../../src/lib/storage';
-import { syncApplicationToServer } from '../../src/lib/api';
+import { trackApplicationOnPlatform } from '../../src/lib/api';
 import { Header } from '../../src/components/Header';
 import { JobDetectorCard } from '../../src/components/JobDetectorCard';
-import { ProfileForm } from '../../src/components/ProfileForm';
-import { ApplicationBoard } from '../../src/components/ApplicationBoard';
-import { ManualAddModal } from '../../src/components/ManualAddModal';
-import { extractJobDetails } from '../../src/lib/extractors';
+import { ProfileSyncBar } from '../../src/components/ProfileSyncBar';
+import { RecentApplicationsWidget } from '../../src/components/RecentApplicationsWidget';
+import { SettingsView } from '../../src/components/SettingsView';
 
 export const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<ExtensionView>('detect');
+  const [currentView, setCurrentView] = useState<ExtensionView>('main');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [profile, setProfile] = useState<CandidateProfile>(DEFAULT_PROFILE);
+  const [settings, setSettings] = useState<ExtensionSettings>(DEFAULT_SETTINGS);
+  const [syncedProfile, setSyncedProfile] = useState<SyncedProfileSummary | null>(null);
   const [applications, setApplications] = useState<TrackedApplication[]>([]);
   const [detectedJob, setDetectedJob] = useState<JobDetails | null>(null);
   const [isDetecting, setIsDetecting] = useState<boolean>(true);
   const [isAutofilling, setIsAutofilling] = useState<boolean>(false);
-  const [isManualModalOpen, setIsManualModalOpen] = useState<boolean>(false);
   const [activeTabId, setActiveTabId] = useState<number | null>(null);
 
   const [autofillStatus, setAutofillStatus] = useState<{
@@ -44,7 +42,7 @@ export const App: React.FC = () => {
     type: 'idle',
   });
 
-  // Apply dark mode class to document
+  // Apply dark mode class
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -55,56 +53,49 @@ export const App: React.FC = () => {
 
   // Load initial data
   useEffect(() => {
-    async function loadInitialData() {
-      const [storedProfile, storedApps, storedAuth, storedTheme] = await Promise.all([
-        getProfile(),
+    async function loadData() {
+      const [storedSettings, storedProfile, storedApps, storedTheme] = await Promise.all([
+        getSettings(),
+        getSyncedProfile(),
         getApplications(),
-        getAuth(),
         getTheme(),
       ]);
 
-      setProfile(storedProfile);
+      setSettings(storedSettings);
+      setSyncedProfile(storedProfile);
       setApplications(storedApps);
-      setAuthUser(storedAuth);
       setTheme(storedTheme);
     }
 
-    loadInitialData();
+    loadData();
   }, []);
 
-  // Theme toggle
   const handleThemeToggle = async () => {
     const nextTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(nextTheme);
     await saveTheme(nextTheme);
   };
 
-  // Safe message sender to active tab with fallback injection
+  // Safe message sender to active tab
   const sendMessageToTab = useCallback(async (tabId: number, message: any): Promise<any> => {
     return new Promise((resolve) => {
       chrome.tabs.sendMessage(tabId, message, async (response) => {
         if (chrome.runtime?.lastError) {
-          // If content script was not yet loaded into the tab, attempt injection
           try {
             if (chrome.scripting) {
               await chrome.scripting.executeScript({
                 target: { tabId },
                 files: ['content-scripts/content.js'],
               });
-              // Retry sending message after slight delay
               setTimeout(() => {
                 chrome.tabs.sendMessage(tabId, message, (retryRes) => {
-                  if (chrome.runtime?.lastError) {
-                    resolve(null);
-                  } else {
-                    resolve(retryRes);
-                  }
+                  resolve(chrome.runtime?.lastError ? null : retryRes);
                 });
               }, 150);
               return;
             }
           } catch {
-            // Ignore injection error (e.g. chrome:// tabs)
+            // Handled
           }
           resolve(null);
         } else {
@@ -121,7 +112,7 @@ export const App: React.FC = () => {
 
     try {
       if (typeof chrome === 'undefined' || !chrome.tabs) {
-        // Mock fallback for browser dev environment
+        // Mock fallback for browser preview
         setDetectedJob({
           title: 'Senior Software Engineer, Core Infrastructure',
           company: 'Stripe',
@@ -142,13 +133,11 @@ export const App: React.FC = () => {
 
       setActiveTabId(tab.id);
 
-      // Try sending message to content script
       const response = await sendMessageToTab(tab.id, { type: 'EXTRACT_JOB_DETAILS' });
 
       if (response && response.success && response.data) {
         setDetectedJob(response.data);
       } else {
-        // Fallback: heuristic extraction from tab URL and title
         const url = tab.url;
         const pageTitle = tab.title || '';
         let atsType: import('../../src/types').ATSType = 'generic';
@@ -196,18 +185,19 @@ export const App: React.FC = () => {
       jobUrl: job.url,
       atsType: job.atsType,
       status,
+      followUpDays: settings.followUpDays,
     });
 
     const updated = await getApplications();
     setApplications(updated);
 
-    // Sync to backend
-    syncApplicationToServer(newApp).catch(() => {});
+    // Sync to CareerAgent web platform
+    trackApplicationOnPlatform(newApp).catch(() => {});
   };
 
-  // Handle Trigger Autofill (Double Value Loop: Fill + Track with 3-Day Reminder)
+  // Handle 1-Click Autofill Form
   const handleTriggerAutofill = async () => {
-    if (!activeTabId || !detectedJob) return;
+    if (!activeTabId || !detectedJob || !syncedProfile?.profile) return;
 
     setIsAutofilling(true);
     setAutofillStatus({ message: null, type: 'idle' });
@@ -215,7 +205,7 @@ export const App: React.FC = () => {
     try {
       const response = await sendMessageToTab(activeTabId, {
         type: 'AUTOFILL_APPLICATION',
-        profile,
+        profile: syncedProfile.profile,
       });
 
       if (response && response.success && response.data?.success) {
@@ -224,8 +214,9 @@ export const App: React.FC = () => {
           type: 'success',
         });
 
-        // Double Value Loop: Auto-log application to tracker with APPLIED status and 3-day reminder!
-        await handleSaveToTracker(detectedJob, 'APPLIED');
+        if (settings.autoTrackOnAutofill) {
+          await handleSaveToTracker(detectedJob, 'APPLIED');
+        }
       } else {
         const errorMsg =
           response?.data?.message ||
@@ -245,13 +236,6 @@ export const App: React.FC = () => {
     }
   };
 
-  // Calculate count of applications requiring follow-up
-  const followUpDueCount = applications.filter((app) => {
-    if (app.status === 'REJECTED' || app.status === 'OFFER') return false;
-    if (!app.followUpDate) return false;
-    return new Date(app.followUpDate) <= new Date();
-  }).length;
-
   const isAlreadyTracked = Boolean(
     detectedJob &&
       applications.some(
@@ -263,64 +247,55 @@ export const App: React.FC = () => {
   );
 
   return (
-    <div className="w-[380px] min-h-[520px] max-h-[580px] flex flex-col bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 font-sans select-none overflow-x-hidden">
-      {/* Header with Brand + Auth + Tabs */}
+    <div className="w-[380px] min-h-[480px] max-h-[580px] flex flex-col bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 font-sans select-none overflow-x-hidden">
+      {/* Header */}
       <Header
         currentView={currentView}
         onViewChange={setCurrentView}
-        authUser={authUser}
-        onAuthChange={setAuthUser}
+        syncedProfile={syncedProfile}
+        hasApiKey={Boolean(settings.apiKey.trim())}
         theme={theme}
         onThemeToggle={handleThemeToggle}
-        followUpDueCount={followUpDueCount}
       />
 
-      {/* Main Content Body */}
-      <main className="flex-1 overflow-y-auto custom-scrollbar">
-        {currentView === 'detect' && (
-          <JobDetectorCard
-            job={detectedJob}
-            isLoading={isDetecting}
-            onRefresh={scanActiveTab}
-            onSaveToTracker={handleSaveToTracker}
-            onTriggerAutofill={handleTriggerAutofill}
-            isAutofilling={isAutofilling}
-            autofillStatus={autofillStatus}
-            isAlreadyTracked={isAlreadyTracked}
-            profile={profile}
-            onGoToProfile={() => setCurrentView('profile')}
+      {/* Main Content */}
+      <main className="flex-1 p-3.5 overflow-y-auto custom-scrollbar space-y-3">
+        {currentView === 'settings' ? (
+          <SettingsView
+            settings={settings}
+            onSettingsSaved={(updated) => setSettings(updated)}
+            onProfileSynced={(updated) => setSyncedProfile(updated)}
+            onBack={() => setCurrentView('main')}
           />
-        )}
+        ) : (
+          <>
+            {/* 1. Active Tab Job Detector Card */}
+            <JobDetectorCard
+              job={detectedJob}
+              isLoading={isDetecting}
+              onRefresh={scanActiveTab}
+              onSaveToTracker={handleSaveToTracker}
+              onTriggerAutofill={handleTriggerAutofill}
+              isAutofilling={isAutofilling}
+              autofillStatus={autofillStatus}
+              isAlreadyTracked={isAlreadyTracked}
+              hasSyncedProfile={Boolean(syncedProfile)}
+              onOpenSettings={() => setCurrentView('settings')}
+            />
 
-        {currentView === 'applications' && (
-          <ApplicationBoard
-            applications={applications}
-            onRefreshApplications={async () => {
-              const updated = await getApplications();
-              setApplications(updated);
-            }}
-            onAddNewManual={() => setIsManualModalOpen(true)}
-          />
-        )}
+            {/* 2. Synced Profile & Web Links Bar */}
+            <ProfileSyncBar
+              syncedProfile={syncedProfile}
+              hasApiKey={Boolean(settings.apiKey.trim())}
+              onProfileSynced={(updated) => setSyncedProfile(updated)}
+              onOpenSettings={() => setCurrentView('settings')}
+            />
 
-        {currentView === 'profile' && (
-          <ProfileForm
-            initialProfile={profile}
-            onProfileUpdated={(updated) => setProfile(updated)}
-          />
+            {/* 3. Recent Tracked Applications Widget */}
+            <RecentApplicationsWidget applications={applications} />
+          </>
         )}
       </main>
-
-      {/* Manual Add Job Modal */}
-      <ManualAddModal
-        isOpen={isManualModalOpen}
-        onClose={() => setIsManualModalOpen(false)}
-        onAdd={async (appData) => {
-          await addApplication(appData);
-          const updated = await getApplications();
-          setApplications(updated);
-        }}
-      />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { JobDetails, CandidateProfile } from '../types';
+import { JobDetails } from '../types';
 import { AutofillBar } from './AutofillBar';
 import {
   Briefcase,
@@ -8,9 +8,9 @@ import {
   Bookmark,
   Check,
   Building2,
-  AlertCircle,
   RefreshCw,
   Sparkles,
+  KeyRound,
 } from 'lucide-react';
 
 interface JobDetectorCardProps {
@@ -25,8 +25,8 @@ interface JobDetectorCardProps {
     type: 'success' | 'error' | 'idle';
   };
   isAlreadyTracked: boolean;
-  profile: CandidateProfile;
-  onGoToProfile: () => void;
+  hasSyncedProfile: boolean;
+  onOpenSettings: () => void;
 }
 
 export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
@@ -38,8 +38,8 @@ export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
   isAutofilling,
   autofillStatus,
   isAlreadyTracked,
-  profile,
-  onGoToProfile,
+  hasSyncedProfile,
+  onOpenSettings,
 }) => {
   const [isSaving, setIsSaving] = useState(false);
 
@@ -53,23 +53,21 @@ export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
     }
   };
 
-  const isProfileIncomplete = !profile.firstName || !profile.email;
-
   const isATS = job && ['greenhouse', 'lever', 'ashby'].includes(job.atsType);
 
   if (isLoading) {
     return (
-      <div className="p-6 flex flex-col items-center justify-center text-center space-y-3 min-h-[300px]">
+      <div className="p-6 flex flex-col items-center justify-center text-center space-y-3 min-h-[220px]">
         <div className="relative">
-          <div className="w-12 h-12 rounded-full border-3 border-brand-200 dark:border-brand-900 border-t-brand-600 animate-spin" />
-          <Sparkles className="w-5 h-5 text-brand-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+          <div className="w-10 h-10 rounded-full border-3 border-brand-200 dark:border-brand-900 border-t-brand-600 animate-spin" />
+          <Sparkles className="w-4 h-4 text-brand-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           <p className="text-xs font-semibold text-stone-800 dark:text-stone-200">
             Detecting Job On Active Tab...
           </p>
-          <p className="text-[11px] text-stone-500 dark:text-stone-400 max-w-[240px]">
-            Inspecting page structure for Greenhouse, Lever, Ashby, or job board details.
+          <p className="text-[10px] text-stone-400">
+            Inspecting page for Greenhouse, Lever, Ashby, or LinkedIn.
           </p>
         </div>
       </div>
@@ -78,24 +76,24 @@ export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
 
   if (!job) {
     return (
-      <div className="p-6 flex flex-col items-center justify-center text-center space-y-4 min-h-[320px]">
-        <div className="w-12 h-12 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-400">
-          <Briefcase className="w-6 h-6" />
+      <div className="p-5 flex flex-col items-center justify-center text-center space-y-3 rounded-xl border border-dashed border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900">
+        <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-400">
+          <Briefcase className="w-5 h-5" />
         </div>
-        <div className="space-y-1 max-w-[280px]">
-          <h3 className="text-sm font-semibold text-stone-800 dark:text-stone-200">
-            No Active Job Page Detected
+        <div className="space-y-1 max-w-[260px]">
+          <h3 className="text-xs font-bold text-stone-800 dark:text-stone-200">
+            No Job Posting Detected
           </h3>
-          <p className="text-xs text-stone-500 dark:text-stone-400">
-            Navigate to an ATS job posting on Greenhouse, Lever, Ashby, or a job board like LinkedIn/Indeed to use 1-click tools.
+          <p className="text-[11px] text-stone-400 leading-tight">
+            Navigate to an ATS job posting (Greenhouse, Lever, Ashby) or LinkedIn to use 1-click tools.
           </p>
         </div>
 
         <button
           onClick={onRefresh}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-stone-300 dark:border-stone-700 text-xs font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-stone-200 dark:border-stone-700 text-xs font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
+          <RefreshCw className="w-3 h-3" />
           Rescan Tab
         </button>
       </div>
@@ -112,37 +110,20 @@ export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
   };
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Profile completion notice if fields are missing */}
-      {isProfileIncomplete && (
-        <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 text-amber-800 dark:text-amber-200 text-xs">
-          <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <span className="font-semibold">Candidate Profile Incomplete: </span>
-            <span>Add your name and email to enable automatic autofill.</span>
-          </div>
-          <button
-            onClick={onGoToProfile}
-            className="text-[11px] underline font-semibold text-brand-600 dark:text-brand-400 shrink-0"
-          >
-            Edit Profile
-          </button>
-        </div>
-      )}
-
+    <div className="space-y-3">
       {/* Detected Job Main Card */}
-      <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-4 shadow-xs space-y-3">
+      <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-3.5 shadow-2xs space-y-3">
         {/* Header row: ATS Badge + Rescan */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <span
-              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+              className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
                 atsBadgeColors[job.atsType] || atsBadgeColors.generic
               }`}
             >
               {job.atsType}
             </span>
-            <span className="text-[11px] text-stone-400 dark:text-stone-500">• Detected</span>
+            <span className="text-[10px] text-stone-400">• Active Tab</span>
           </div>
 
           <button
@@ -156,18 +137,18 @@ export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
 
         {/* Job Title & Company */}
         <div className="space-y-1">
-          <h2 className="text-base font-bold text-stone-900 dark:text-stone-50 leading-snug line-clamp-2">
+          <h2 className="text-sm font-bold text-stone-900 dark:text-stone-50 leading-snug line-clamp-2">
             {job.title}
           </h2>
 
-          <div className="flex flex-wrap items-center gap-y-1 gap-x-3 text-xs text-stone-600 dark:text-stone-400 pt-0.5">
-            <div className="flex items-center gap-1 font-medium text-stone-800 dark:text-stone-200">
+          <div className="flex flex-wrap items-center gap-y-1 gap-x-2.5 text-xs text-stone-600 dark:text-stone-400">
+            <div className="flex items-center gap-1 font-semibold text-stone-800 dark:text-stone-200">
               <Building2 className="w-3.5 h-3.5 text-stone-400 shrink-0" />
               <span className="truncate max-w-[140px]">{job.company}</span>
             </div>
 
-            <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400">
-              <MapPin className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+            <div className="flex items-center gap-1 text-stone-500 text-[11px]">
+              <MapPin className="w-3 h-3 text-stone-400 shrink-0" />
               <span className="truncate max-w-[120px]">{job.location}</span>
             </div>
           </div>
@@ -175,14 +156,14 @@ export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
 
         {/* Canonical link */}
         {job.url && (
-          <div className="pt-1">
+          <div className="pt-0.5">
             <a
               href={job.url}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-[11px] text-stone-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors truncate max-w-full"
+              className="inline-flex items-center gap-1 text-[10px] text-stone-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors truncate max-w-full"
             >
-              <ExternalLink className="w-3 h-3 shrink-0" />
+              <ExternalLink className="w-2.5 h-2.5 shrink-0" />
               <span className="truncate">{job.url}</span>
             </a>
           </div>
@@ -190,40 +171,48 @@ export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
 
         <hr className="border-stone-100 dark:border-stone-800/80 my-1" />
 
-        {/* 1-Click Autofill Bar (Double Value Loop: autofill + auto-log to tracker with 3-day reminder) */}
-        <AutofillBar
-          atsType={job.atsType}
-          onAutofill={onTriggerAutofill}
-          isAutofilling={isAutofilling}
-          statusMessage={autofillStatus.message}
-          statusType={autofillStatus.type}
-          isSupportedATS={Boolean(isATS)}
-        />
-
-        {/* Secondary Action: Save to Tracker without autofill */}
-        <div className="pt-1">
+        {/* 1-Click Autofill Button */}
+        {hasSyncedProfile ? (
+          <AutofillBar
+            atsType={job.atsType}
+            onAutofill={onTriggerAutofill}
+            isAutofilling={isAutofilling}
+            statusMessage={autofillStatus.message}
+            statusType={autofillStatus.type}
+            isSupportedATS={Boolean(isATS)}
+          />
+        ) : (
           <button
-            onClick={handleSave}
-            disabled={isSaving || isAlreadyTracked}
-            className={`w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border text-xs font-medium transition-all ${
-              isAlreadyTracked
-                ? 'border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
-                : 'border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-800/60 text-stone-700 dark:text-stone-200'
-            }`}
+            onClick={onOpenSettings}
+            className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 text-xs font-semibold"
           >
-            {isAlreadyTracked ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Saved to Applications Tracker</span>
-              </>
-            ) : (
-              <>
-                <Bookmark className="w-3.5 h-3.5 text-stone-500 dark:text-stone-400" />
-                <span>{isSaving ? 'Saving...' : '📌 Save to Tracker (3-Day Reminder)'}</span>
-              </>
-            )}
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>Connect API Key to Enable 1-Click Autofill</span>
           </button>
-        </div>
+        )}
+
+        {/* Save to Tracker Button */}
+        <button
+          onClick={handleSave}
+          disabled={isSaving || isAlreadyTracked}
+          className={`w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border text-xs font-medium transition-all ${
+            isAlreadyTracked
+              ? 'border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
+              : 'border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-800/60 text-stone-700 dark:text-stone-200'
+          }`}
+        >
+          {isAlreadyTracked ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Saved to CareerAgent Board</span>
+            </>
+          ) : (
+            <>
+              <Bookmark className="w-3.5 h-3.5 text-stone-500" />
+              <span>{isSaving ? 'Saving...' : '📌 Save to CareerAgent (3-Day Reminder)'}</span>
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
