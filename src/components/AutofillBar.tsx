@@ -8,7 +8,7 @@ interface AutofillBarProps {
   isAutofilling: boolean;
   statusMessage: string | null;
   statusType: 'success' | 'error' | 'idle';
-  isSupportedATS: boolean;
+  isSupportedATS?: boolean;
 }
 
 export const AutofillBar: React.FC<AutofillBarProps> = ({
@@ -17,18 +17,17 @@ export const AutofillBar: React.FC<AutofillBarProps> = ({
   isAutofilling,
   statusMessage,
   statusType,
-  isSupportedATS,
 }) => {
+  const isDedicated = ['greenhouse', 'lever', 'ashby'].includes(atsType);
+  const badgeLabel = isDedicated ? ` (${atsType.toUpperCase()})` : '';
+
   return (
     <div className="space-y-2">
       <button
+        type="button"
         onClick={onAutofill}
-        disabled={isAutofilling || !isSupportedATS}
-        className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-semibold text-xs transition-all shadow-sm ${
-          isSupportedATS
-            ? 'bg-gradient-to-r from-brand-600 to-amber-600 hover:from-brand-500 hover:to-amber-500 text-white shadow-brand-500/20 active:scale-[0.98]'
-            : 'bg-stone-200 dark:bg-stone-800 text-stone-400 dark:text-stone-500 cursor-not-allowed'
-        }`}
+        disabled={isAutofilling}
+        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-semibold text-xs text-white bg-gradient-to-r from-brand-600 to-amber-600 hover:from-brand-500 hover:to-amber-500 shadow-sm shadow-brand-500/20 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
       >
         {isAutofilling ? (
           <>
@@ -37,12 +36,8 @@ export const AutofillBar: React.FC<AutofillBarProps> = ({
           </>
         ) : (
           <>
-            <Zap className={`w-4 h-4 ${isSupportedATS ? 'text-amber-200 fill-amber-200' : 'text-stone-400'}`} />
-            <span>
-              {isSupportedATS
-                ? `1-Click Autofill Form (${atsType.toUpperCase()})`
-                : 'Autofill Form (ATS Not Detected)'}
-            </span>
+            <Zap className="w-4 h-4 text-amber-200 fill-amber-200" />
+            <span>1-Click Autofill Form{badgeLabel}</span>
           </>
         )}
       </button>
@@ -61,7 +56,7 @@ export const AutofillBar: React.FC<AutofillBarProps> = ({
           ) : (
             <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
           )}
-          <span className="font-medium">{statusMessage}</span>
+          <span className="font-medium leading-tight">{statusMessage}</span>
         </div>
       )}
     </div>

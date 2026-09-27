@@ -54,8 +54,6 @@ export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
     }
   };
 
-  const isATS = job && ['greenhouse', 'lever', 'ashby'].includes(job.atsType);
-
   if (isLoading) {
     return (
       <div className="p-6 flex flex-col items-center justify-center text-center space-y-3 min-h-[220px]">
@@ -167,7 +165,6 @@ export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
             isAutofilling={isAutofilling}
             statusMessage={autofillStatus.message}
             statusType={autofillStatus.type}
-            isSupportedATS={Boolean(isATS)}
           />
         ) : (
           <button
