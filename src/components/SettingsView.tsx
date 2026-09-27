@@ -13,6 +13,7 @@ import {
   KeyRound,
   Cpu,
   RefreshCw,
+  Sliders,
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -30,7 +31,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const initialSettings = {
     ...settings,
     aiModel:
-      settings.aiProvider === 'gemini' && settings.aiModel === 'gemini-1.5-flash'
+      settings.aiProvider === 'gemini' && (settings.aiModel === 'gemini-1.5-flash' || !settings.aiModel)
         ? 'gemini-2.5-flash'
         : settings.aiModel || 'gemini-2.5-flash',
   };
@@ -38,6 +39,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [formData, setFormData] = useState<ExtensionSettings>(initialSettings);
   const [showKey, setShowKey] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isDetectingModels, setIsDetectingModels] = useState(false);
   const [dynamicModels, setDynamicModels] = useState<Record<AIProvider, any[]>>({
     gemini: AI_MODELS.gemini,
@@ -61,6 +63,29 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     setFeedback({ type: null, message: null });
   };
 
+  // Instant preference saving: checkboxes save immediately so preferences always persist
+  const handleToggleAutoTrack = async (checked: boolean) => {
+    const updated = { ...formData, autoTrackOnAutofill: checked };
+    setFormData(updated);
+    await saveSettings(updated);
+    onSettingsSaved(updated);
+    setFeedback({
+      type: 'success',
+      message: checked ? 'Auto-log on autofill enabled.' : 'Auto-log on autofill disabled.',
+    });
+  };
+
+  const handleToggleNotifications = async (checked: boolean) => {
+    const updated = { ...formData, notificationsEnabled: checked };
+    setFormData(updated);
+    await saveSettings(updated);
+    onSettingsSaved(updated);
+    setFeedback({
+      type: 'success',
+      message: checked ? 'Follow-up badge reminders enabled.' : 'Badge reminders disabled.',
+    });
+  };
+
   const handleDetectModels = async () => {
     if (!formData.aiApiKey.trim()) {
       setFeedback({
@@ -75,7 +100,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       const fetched = await fetchAvailableModels(formData.aiProvider, formData.aiApiKey);
       if (fetched && fetched.length > 0) {
         setDynamicModels((prev) => ({ ...prev, [formData.aiProvider]: fetched }));
-        // If current model not in fetched, pick first
         const exists = fetched.some((m) => m.id === formData.aiModel);
         if (!exists) {
           setFormData((prev) => ({ ...prev, aiModel: fetched[0].id }));
@@ -100,15 +124,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
   };
 
+  // Direct save without requiring a network call
+  const handleDirectSave = async () => {
+    setIsSaving(true);
+    try {
+      await saveSettings(formData);
+      onSettingsSaved(formData);
+      setFeedback({
+        type: 'success',
+        message: 'Settings saved successfully!',
+      });
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err?.message || 'Failed to save settings.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Test API key and save on success
   const handleTestAndSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsTesting(true);
     setFeedback({ type: null, message: null });
 
     try {
-      await saveSettings(formData);
-      onSettingsSaved(formData);
-
       if (formData.aiApiKey.trim()) {
         const testRes = await testAIConnection(
           formData.aiProvider,
@@ -117,9 +159,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         );
 
         if (testRes.success) {
+          await saveSettings(formData);
+          onSettingsSaved(formData);
           setFeedback({
             type: 'success',
-            message: `Key verified! Connected to ${formData.aiModel}.`,
+            message: `Key verified and saved! Connected to ${formData.aiModel}.`,
           });
         } else {
           setFeedback({
@@ -128,6 +172,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           });
         }
       } else {
+        await saveSettings(formData);
+        onSettingsSaved(formData);
         setFeedback({
           type: 'success',
           message: 'Settings saved. Enter an API key to enable AI autofill.',
@@ -136,7 +182,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     } catch (err: any) {
       setFeedback({
         type: 'error',
-        message: err?.message || 'Error saving settings.',
+        message: err?.message || 'Error verifying connection.',
       });
     } finally {
       setIsTesting(false);
@@ -180,7 +226,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           ) : (
             <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
           )}
-          <span className="font-medium">{feedback.message}</span>
+          <span className="font-medium leading-tight">{feedback.message}</span>
         </div>
       )}
 
@@ -322,15 +368,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 Auto-log on 1-click autofill
               </p>
               <p className="text-[10px] text-muted-foreground">
-                Immediately records job to your tracker.
+                Immediately records job to your tracker upon autofill.
               </p>
             </div>
             <input
               type="checkbox"
               checked={formData.autoTrackOnAutofill}
-              onChange={(e) =>
-                setFormData({ ...formData, autoTrackOnAutofill: e.target.checked })
-              }
+              onChange={(e) => handleToggleAutoTrack(e.target.checked)}
               className="rounded border-input text-primary focus:ring-primary h-4 w-4 cursor-pointer"
             />
           </div>
@@ -347,31 +391,41 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <input
               type="checkbox"
               checked={formData.notificationsEnabled}
-              onChange={(e) =>
-                setFormData({ ...formData, notificationsEnabled: e.target.checked })
-              }
+              onChange={(e) => handleToggleNotifications(e.target.checked)}
               className="rounded border-input text-primary focus:ring-primary h-4 w-4 cursor-pointer"
             />
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-2 border-t border-border flex items-center justify-end gap-2">
+        <div className="pt-2 border-t border-border flex items-center justify-between">
           <button
             type="button"
             onClick={onBack}
             className="px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary hover:bg-secondary/80 text-foreground transition-colors cursor-pointer"
           >
-            Cancel
+            Back
           </button>
-          <button
-            type="submit"
-            disabled={isTesting}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>{isTesting ? 'Verifying Key...' : 'Test & Save Key'}</span>
-          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDirectSave}
+              disabled={isSaving || isTesting}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-card hover:bg-secondary text-foreground transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
+
+            <button
+              type="submit"
+              disabled={isTesting || isSaving}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>{isTesting ? 'Verifying Key...' : 'Test & Save Key'}</span>
+            </button>
+          </div>
         </div>
       </form>
     </div>

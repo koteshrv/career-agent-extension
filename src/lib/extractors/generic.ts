@@ -1,9 +1,10 @@
 import { JobDetails } from '../../types';
 
-export function extractGeneric(url: string, doc: Document = document): JobDetails {
+export function extractGeneric(url: string, doc: Document = document): JobDetails | null {
   let title = '';
   let company = '';
   let location = '';
+  let hasJobPostingSchema = false;
 
   // 1. Try Schema.org JSON-LD JobPosting
   try {
@@ -14,6 +15,7 @@ export function extractGeneric(url: string, doc: Document = document): JobDetail
         const items = Array.isArray(data) ? data : data['@graph'] ? data['@graph'] : [data];
         for (const item of items) {
           if (item['@type'] === 'JobPosting') {
+            hasJobPostingSchema = true;
             title = item.title || item.name || '';
             if (typeof item.hiringOrganization === 'string') {
               company = item.hiringOrganization;
@@ -38,11 +40,18 @@ export function extractGeneric(url: string, doc: Document = document): JobDetail
     // Continue fallback
   }
 
+  const isJobBoard = /indeed\.com|glassdoor\.com|wellfound\.com|builtin\.com|naukri\.com|ziprecruiter\.com|dice\.com/i.test(url);
+  const hasJobPath = /\/(job|jobs|careers|positions|openings|roles|apply)\b/i.test(url);
+
+  // If this is neither a job board, nor has job posting schema, nor has a career/job URL path, do NOT invent a job
+  if (!hasJobPostingSchema && !isJobBoard && !hasJobPath) {
+    return null;
+  }
+
   // 2. OpenGraph & Meta tag extraction
   if (!title) {
     const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content');
     if (ogTitle) {
-      // Often formatted as "Senior Engineer at Stripe" or "Job Title - Company"
       const parts = ogTitle.split(/ at | - | \| /i);
       title = parts[0]?.trim() || '';
       if (!company && parts[1]) {

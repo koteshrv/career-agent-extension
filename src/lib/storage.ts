@@ -26,7 +26,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   aiProvider: 'gemini',
   aiApiKey: '',
   aiModel: 'gemini-2.5-flash',
-  autoTrackOnAutofill: true,
+  autoTrackOnAutofill: false,
   notificationsEnabled: true,
   followUpDays: 3,
 };
@@ -90,7 +90,6 @@ async function setStorageItem<T>(key: string, value: T): Promise<void> {
 export async function getSettings(): Promise<ExtensionSettings> {
   const settings = await getStorageItem<ExtensionSettings>('careeragent_settings', DEFAULT_SETTINGS);
   const resolved = { ...DEFAULT_SETTINGS, ...settings };
-  // Auto-upgrade retired gemini-1.5-flash to gemini-2.5-flash
   if (resolved.aiProvider === 'gemini' && (resolved.aiModel === 'gemini-1.5-flash' || !resolved.aiModel)) {
     resolved.aiModel = 'gemini-2.5-flash';
   }
@@ -198,6 +197,10 @@ export async function deleteApplication(id: string): Promise<void> {
   const apps = await getApplications();
   const filtered = apps.filter((app) => app.id !== id);
   await saveApplications(filtered);
+}
+
+export async function clearApplications(): Promise<void> {
+  await saveApplications([]);
 }
 
 // ==========================================

@@ -8,7 +8,7 @@ import { extractGeneric } from './generic';
 /**
  * Detects ATS / Job Board and extracts job details from the current document
  */
-export function extractJobDetails(url: string, doc: Document = document): JobDetails {
+export function extractJobDetails(url: string, doc: Document = document): JobDetails | null {
   if (isGreenhousePage(url, doc)) {
     const gh = extractGreenhouse(url, doc);
     if (gh) return gh;

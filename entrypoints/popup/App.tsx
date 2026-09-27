@@ -14,6 +14,8 @@ import {
   getProfile,
   getApplications,
   addApplication,
+  deleteApplication,
+  clearApplications,
   getTheme,
   saveTheme,
   DEFAULT_SETTINGS,
@@ -118,14 +120,7 @@ export const App: React.FC = () => {
 
     try {
       if (typeof chrome === 'undefined' || !chrome.tabs) {
-        // Mock fallback for browser preview
-        setDetectedJob({
-          title: 'Senior Software Engineer, Core Infrastructure',
-          company: 'Stripe',
-          location: 'San Francisco, CA (Hybrid)',
-          url: 'https://boards.greenhouse.io/stripe/jobs/demo',
-          atsType: 'greenhouse',
-        });
+        setDetectedJob(null);
         setIsDetecting(false);
         return;
       }
@@ -144,31 +139,33 @@ export const App: React.FC = () => {
       if (response && response.success && response.data) {
         setDetectedJob(response.data);
       } else {
-        const url = tab.url;
-        const pageTitle = tab.title || '';
-        let atsType: import('../../src/types').ATSType = 'generic';
+        const url = tab.url || '';
+        const isATS =
+          url.includes('boards.greenhouse.io') ||
+          url.includes('gh_jid') ||
+          url.includes('jobs.lever.co') ||
+          url.includes('jobs.ashbyhq.com') ||
+          url.includes('linkedin.com/jobs');
 
-        if (url.includes('boards.greenhouse.io') || url.includes('gh_jid')) {
-          atsType = 'greenhouse';
-        } else if (url.includes('jobs.lever.co')) {
-          atsType = 'lever';
-        } else if (url.includes('jobs.ashbyhq.com')) {
-          atsType = 'ashby';
-        } else if (url.includes('linkedin.com/jobs')) {
-          atsType = 'linkedin';
+        if (isATS) {
+          let atsType: import('../../src/types').ATSType = 'generic';
+          if (url.includes('boards.greenhouse.io') || url.includes('gh_jid')) atsType = 'greenhouse';
+          else if (url.includes('jobs.lever.co')) atsType = 'lever';
+          else if (url.includes('jobs.ashbyhq.com')) atsType = 'ashby';
+          else if (url.includes('linkedin.com/jobs')) atsType = 'linkedin';
+
+          const pageTitle = tab.title || '';
+          const titleParts = pageTitle.split(/ - | \| | at /i);
+          setDetectedJob({
+            title: titleParts[0]?.trim() || 'Job Opportunity',
+            company: titleParts[1]?.trim() || 'Company',
+            location: 'See Job Details',
+            url,
+            atsType,
+          });
+        } else {
+          setDetectedJob(null);
         }
-
-        const titleParts = pageTitle.split(/ - | \| | at /i);
-        const title = titleParts[0]?.trim() || 'Job Opportunity';
-        const company = titleParts[1]?.trim() || 'Hiring Company';
-
-        setDetectedJob({
-          title,
-          company,
-          location: 'See Job Description',
-          url,
-          atsType,
-        });
       }
     } catch (err) {
       console.error('[CareerAgent Popup] Error scanning tab:', err);
@@ -198,6 +195,19 @@ export const App: React.FC = () => {
     setApplications(updated);
   };
 
+  // Handle deleting a single application
+  const handleDeleteApplication = async (id: string) => {
+    await deleteApplication(id);
+    const updated = await getApplications();
+    setApplications(updated);
+  };
+
+  // Handle clearing all applications
+  const handleClearApplications = async () => {
+    await clearApplications();
+    setApplications([]);
+  };
+
   // Handle 1-Click Autofill Form
   const handleTriggerAutofill = async () => {
     if (!activeTabId || !detectedJob) return;
@@ -219,6 +229,7 @@ export const App: React.FC = () => {
           type: 'success',
         });
 
+        // Only auto-track if explicitly enabled by user in settings
         if (settings.autoTrackOnAutofill) {
           await handleSaveToTracker(detectedJob, 'APPLIED');
         }
@@ -294,7 +305,11 @@ export const App: React.FC = () => {
             />
 
             {/* 3. Recent Tracked Applications Widget */}
-            <RecentApplicationsWidget applications={applications} />
+            <RecentApplicationsWidget
+              applications={applications}
+              onDeleteApplication={handleDeleteApplication}
+              onClearApplications={handleClearApplications}
+            />
           </>
         )}
       </main>

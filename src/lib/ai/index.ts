@@ -275,7 +275,7 @@ export async function fetchAvailableModels(
         });
       }
     } catch {
-      // Fallback to static list
+      // Fallback
     }
   }
 
@@ -300,4 +300,3 @@ export async function fetchAvailableModels(
 
   return AI_MODELS[provider] || [];
 }
-
