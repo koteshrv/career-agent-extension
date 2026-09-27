@@ -1,54 +1,47 @@
 import { CandidateProfile, SyncedProfileSummary, TrackedApplication } from '../types';
-import { getSettings, saveSyncedProfile, DEFAULT_PROFILE } from './storage';
+import { DEFAULT_PROFILE, saveSyncedProfile } from './storage';
+
+export const CAREERAGENT_API_URL = 'https://api.careeragent.fyi';
+export const CAREERAGENT_WEB_URL = 'https://careeragent.fyi';
 
 /**
- * Fetch and sync user's candidate profile from CareerAgent web platform using API Key
+ * Fetch and sync user's candidate profile from CareerAgent web platform
  */
 export async function syncProfileFromPlatform(
-  apiKey?: string,
-  apiUrl?: string
+  token?: string
 ): Promise<{ success: boolean; data?: SyncedProfileSummary; error?: string }> {
-  const settings = await getSettings();
-  const effectiveKey = (apiKey !== undefined ? apiKey : settings.apiKey).trim();
-  const effectiveUrl = (apiUrl || settings.apiUrl || 'https://api.careeragent.fyi').replace(/\/+$/, '');
-
-  if (!effectiveKey) {
-    return {
-      success: false,
-      error: 'Please enter your CareerAgent API Key in Settings.',
-    };
-  }
-
   try {
-    const response = await fetch(`${effectiveUrl}/v1/profile`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${effectiveKey}`,
-        'Content-Type': 'application/json',
-      },
-    }).catch(() => null);
-
-    if (response && response.ok) {
-      const json = await response.json();
-      const profileData = json.profile || json.data || json;
-
-      const synced: SyncedProfileSummary = {
-        userId: json.userId || json.id || 'usr_synced',
-        name: json.name || `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim() || 'CareerAgent User',
-        email: json.email || profileData.email || '',
-        avatarUrl: json.avatarUrl,
-        lastSyncedAt: new Date().toISOString(),
-        profile: {
-          ...DEFAULT_PROFILE,
-          ...profileData,
+    if (token) {
+      const response = await fetch(`${CAREERAGENT_API_URL}/v1/profile`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-      };
+      }).catch(() => null);
 
-      await saveSyncedProfile(synced);
-      return { success: true, data: synced };
+      if (response && response.ok) {
+        const json = await response.json();
+        const profileData = json.profile || json.data || json;
+
+        const synced: SyncedProfileSummary = {
+          userId: json.userId || json.id || 'usr_synced',
+          name: json.name || `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim() || 'CareerAgent User',
+          email: json.email || profileData.email || '',
+          avatarUrl: json.avatarUrl,
+          lastSyncedAt: new Date().toISOString(),
+          profile: {
+            ...DEFAULT_PROFILE,
+            ...profileData,
+          },
+        };
+
+        await saveSyncedProfile(synced);
+        return { success: true, data: synced };
+      }
     }
 
-    // Graceful offline fallback / demo mode when connecting
+    // Default profile
     const fallbackProfile: CandidateProfile = {
       firstName: 'Alex',
       lastName: 'Chen',
@@ -66,7 +59,7 @@ export async function syncProfileFromPlatform(
     };
 
     const synced: SyncedProfileSummary = {
-      userId: `usr_${effectiveKey.slice(0, 8)}`,
+      userId: 'usr_default',
       name: 'Alex Chen',
       email: 'alex.chen@example.com',
       lastSyncedAt: new Date().toISOString(),
@@ -89,16 +82,10 @@ export async function syncProfileFromPlatform(
 export async function trackApplicationOnPlatform(
   app: TrackedApplication
 ): Promise<boolean> {
-  const settings = await getSettings();
-  if (!settings.apiKey) return false;
-
-  const effectiveUrl = (settings.apiUrl || 'https://api.careeragent.fyi').replace(/\/+$/, '');
-
   try {
-    const response = await fetch(`${effectiveUrl}/v1/applications`, {
+    const response = await fetch(`${CAREERAGENT_API_URL}/v1/applications`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${settings.apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(app),
@@ -115,9 +102,7 @@ export async function trackApplicationOnPlatform(
  * Open a path on the main CareerAgent web platform in a new browser tab
  */
 export async function openPlatformUrl(path: string = '/'): Promise<void> {
-  const settings = await getSettings();
-  const base = (settings.webAppUrl || 'https://careeragent.fyi').replace(/\/+$/, '');
-  const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
+  const url = `${CAREERAGENT_WEB_URL}${path.startsWith('/') ? path : `/${path}`}`;
 
   if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
     chrome.tabs.create({ url });
@@ -127,6 +112,5 @@ export async function openPlatformUrl(path: string = '/'): Promise<void> {
 }
 
 export async function syncProfileToServer(_profile: CandidateProfile): Promise<boolean> {
-  const settings = await getSettings();
-  return Boolean(settings.apiKey);
+  return true;
 }

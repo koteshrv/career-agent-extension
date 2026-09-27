@@ -20,6 +20,10 @@ export default defineConfig({
       '*://*.linkedin.com/*',
       '*://*.indeed.com/*',
       'https://api.careeragent.fyi/*',
+      'https://generativelanguage.googleapis.com/*',
+      'https://api.openai.com/*',
+      'https://api.anthropic.com/*',
+      'https://api.groq.com/*',
     ],
     icons: {
       16: 'icon-16.png',

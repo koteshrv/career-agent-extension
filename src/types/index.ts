@@ -68,10 +68,18 @@ export interface AutofillResult {
   details?: Record<string, string>;
 }
 
+export type AIProvider = 'gemini' | 'openai' | 'anthropic' | 'groq';
+
+export interface AIModelOption {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 export interface ExtensionSettings {
-  apiKey: string;
-  apiUrl: string;
-  webAppUrl: string;
+  aiProvider: AIProvider;
+  aiApiKey: string;
+  aiModel: string;
   autoTrackOnAutofill: boolean;
   notificationsEnabled: boolean;
   followUpDays: number;

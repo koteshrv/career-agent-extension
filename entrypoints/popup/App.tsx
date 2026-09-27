@@ -6,17 +6,19 @@ import {
   ExtensionSettings,
   SyncedProfileSummary,
   ApplicationStatus,
+  CandidateProfile,
 } from '../../src/types';
 import {
   getSettings,
   getSyncedProfile,
+  getProfile,
   getApplications,
   addApplication,
   getTheme,
   saveTheme,
   DEFAULT_SETTINGS,
+  DEFAULT_PROFILE,
 } from '../../src/lib/storage';
-import { trackApplicationOnPlatform } from '../../src/lib/api';
 import { Header } from '../../src/components/Header';
 import { JobDetectorCard } from '../../src/components/JobDetectorCard';
 import { ProfileSyncBar } from '../../src/components/ProfileSyncBar';
@@ -28,6 +30,7 @@ export const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [settings, setSettings] = useState<ExtensionSettings>(DEFAULT_SETTINGS);
   const [syncedProfile, setSyncedProfile] = useState<SyncedProfileSummary | null>(null);
+  const [profile, setProfile] = useState<CandidateProfile>(DEFAULT_PROFILE);
   const [applications, setApplications] = useState<TrackedApplication[]>([]);
   const [detectedJob, setDetectedJob] = useState<JobDetails | null>(null);
   const [isDetecting, setIsDetecting] = useState<boolean>(true);
@@ -54,15 +57,18 @@ export const App: React.FC = () => {
   // Load initial data
   useEffect(() => {
     async function loadData() {
-      const [storedSettings, storedProfile, storedApps, storedTheme] = await Promise.all([
-        getSettings(),
-        getSyncedProfile(),
-        getApplications(),
-        getTheme(),
-      ]);
+      const [storedSettings, storedSynced, storedProfile, storedApps, storedTheme] =
+        await Promise.all([
+          getSettings(),
+          getSyncedProfile(),
+          getProfile(),
+          getApplications(),
+          getTheme(),
+        ]);
 
       setSettings(storedSettings);
-      setSyncedProfile(storedProfile);
+      setSyncedProfile(storedSynced);
+      setProfile(storedProfile);
       setApplications(storedApps);
       setTheme(storedTheme);
     }
@@ -178,7 +184,7 @@ export const App: React.FC = () => {
 
   // Handle Save to Tracker
   const handleSaveToTracker = async (job: JobDetails, status: ApplicationStatus = 'SAVED') => {
-    const newApp = await addApplication({
+    await addApplication({
       jobTitle: job.title,
       company: job.company,
       location: job.location,
@@ -190,22 +196,21 @@ export const App: React.FC = () => {
 
     const updated = await getApplications();
     setApplications(updated);
-
-    // Sync to CareerAgent web platform
-    trackApplicationOnPlatform(newApp).catch(() => {});
   };
 
   // Handle 1-Click Autofill Form
   const handleTriggerAutofill = async () => {
-    if (!activeTabId || !detectedJob || !syncedProfile?.profile) return;
+    if (!activeTabId || !detectedJob) return;
 
     setIsAutofilling(true);
     setAutofillStatus({ message: null, type: 'idle' });
 
     try {
+      const activeProfile = syncedProfile?.profile || profile;
+
       const response = await sendMessageToTab(activeTabId, {
         type: 'AUTOFILL_APPLICATION',
-        profile: syncedProfile.profile,
+        profile: activeProfile,
       });
 
       if (response && response.success && response.data?.success) {
@@ -252,8 +257,7 @@ export const App: React.FC = () => {
       <Header
         currentView={currentView}
         onViewChange={setCurrentView}
-        syncedProfile={syncedProfile}
-        hasApiKey={Boolean(settings.apiKey.trim())}
+        settings={settings}
         theme={theme}
         onThemeToggle={handleThemeToggle}
       />
@@ -264,7 +268,6 @@ export const App: React.FC = () => {
           <SettingsView
             settings={settings}
             onSettingsSaved={(updated) => setSettings(updated)}
-            onProfileSynced={(updated) => setSyncedProfile(updated)}
             onBack={() => setCurrentView('main')}
           />
         ) : (
@@ -279,15 +282,14 @@ export const App: React.FC = () => {
               isAutofilling={isAutofilling}
               autofillStatus={autofillStatus}
               isAlreadyTracked={isAlreadyTracked}
-              hasSyncedProfile={Boolean(syncedProfile)}
+              settings={settings}
               onOpenSettings={() => setCurrentView('settings')}
             />
 
-            {/* 2. Synced Profile & Web Links Bar */}
+            {/* 2. AI Model Status & Web Links Bar */}
             <ProfileSyncBar
+              settings={settings}
               syncedProfile={syncedProfile}
-              hasApiKey={Boolean(settings.apiKey.trim())}
-              onProfileSynced={(updated) => setSyncedProfile(updated)}
               onOpenSettings={() => setCurrentView('settings')}
             />
 

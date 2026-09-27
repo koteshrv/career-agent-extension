@@ -1,28 +1,28 @@
 import React, { useState } from 'react';
-import { ExtensionSettings, SyncedProfileSummary } from '../types';
+import { ExtensionSettings, AIProvider } from '../types';
 import { saveSettings } from '../lib/storage';
-import { syncProfileFromPlatform, openPlatformUrl } from '../lib/api';
+import { AI_MODELS, AI_KEY_LINKS, testAIConnection } from '../lib/ai';
 import {
-  KeyRound,
+  Sparkles,
   CheckCircle2,
   AlertTriangle,
   ExternalLink,
   Eye,
   EyeOff,
   Save,
+  KeyRound,
+  Cpu,
 } from 'lucide-react';
 
 interface SettingsViewProps {
   settings: ExtensionSettings;
   onSettingsSaved: (settings: ExtensionSettings) => void;
-  onProfileSynced: (profile: SyncedProfileSummary) => void;
   onBack: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   settings,
   onSettingsSaved,
-  onProfileSynced,
   onBack,
 }) => {
   const [formData, setFormData] = useState<ExtensionSettings>(settings);
@@ -33,6 +33,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     message: string | null;
   }>({ type: null, message: null });
 
+  const handleProviderChange = (provider: AIProvider) => {
+    const models = AI_MODELS[provider];
+    setFormData((prev) => ({
+      ...prev,
+      aiProvider: provider,
+      aiModel: models[0]?.id || '',
+    }));
+    setFeedback({ type: null, message: null });
+  };
+
   const handleTestAndSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsTesting(true);
@@ -42,24 +52,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       await saveSettings(formData);
       onSettingsSaved(formData);
 
-      if (formData.apiKey.trim()) {
-        const res = await syncProfileFromPlatform(formData.apiKey, formData.apiUrl);
-        if (res.success && res.data) {
-          onProfileSynced(res.data);
+      if (formData.aiApiKey.trim()) {
+        const testRes = await testAIConnection(
+          formData.aiProvider,
+          formData.aiApiKey,
+          formData.aiModel
+        );
+
+        if (testRes.success) {
           setFeedback({
             type: 'success',
-            message: `Connected successfully! Synced as ${res.data.name}.`,
+            message: `Key verified! Connected to ${formData.aiModel}.`,
           });
         } else {
           setFeedback({
             type: 'error',
-            message: res.error || 'Connection failed. Check your API key.',
+            message: testRes.message,
           });
         }
       } else {
         setFeedback({
           type: 'success',
-          message: 'Settings saved.',
+          message: 'Settings saved. Enter an API key to enable AI autofill.',
         });
       }
     } catch (err: any) {
@@ -72,16 +86,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
   };
 
+  const providerNames: Record<AIProvider, string> = {
+    gemini: 'Google Gemini',
+    openai: 'OpenAI',
+    anthropic: 'Claude (Anthropic)',
+    groq: 'Groq',
+  };
+
+  const availableModels = AI_MODELS[formData.aiProvider] || [];
+  const keyLink = AI_KEY_LINKS[formData.aiProvider];
+
   return (
     <div className="space-y-3.5">
       {/* Title */}
       <div>
         <h2 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-          <KeyRound className="w-4 h-4 text-primary" />
-          <span>Extension Settings</span>
+          <Sparkles className="w-4 h-4 text-primary" />
+          <span>AI Model & Key Settings</span>
         </h2>
         <p className="text-[11px] text-muted-foreground">
-          Connect to your CareerAgent web account to sync candidate profiles.
+          Bring your own AI API key to power 1-click ATS application autofill.
         </p>
       </div>
 
@@ -102,29 +126,88 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       )}
 
-      {/* API Key Box */}
+      {/* Main Settings Form */}
       <form onSubmit={handleTestAndSave} className="space-y-3.5 p-3.5 rounded-xl border border-border bg-card shadow-2xs">
+        {/* 1. AI Provider Selection */}
+        <div>
+          <label className="block text-xs font-semibold text-foreground mb-1.5">
+            AI Provider
+          </label>
+          <div className="grid grid-cols-2 gap-1.5">
+            {(['gemini', 'openai', 'anthropic', 'groq'] as AIProvider[]).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => handleProviderChange(p)}
+                className={`py-1.5 px-2.5 rounded-lg text-xs font-medium border text-left transition-all cursor-pointer ${
+                  formData.aiProvider === p
+                    ? 'border-primary bg-primary/10 text-primary font-semibold ring-1 ring-primary/30'
+                    : 'border-border bg-secondary hover:bg-secondary/80 text-foreground'
+                }`}
+              >
+                {providerNames[p]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 2. Model Selection Dropdown */}
+        <div>
+          <label className="flex items-center justify-between text-xs font-semibold text-foreground mb-1">
+            <span className="flex items-center gap-1">
+              <Cpu className="w-3.5 h-3.5 text-primary" />
+              <span>Model Selection</span>
+            </span>
+          </label>
+
+          <select
+            value={formData.aiModel}
+            onChange={(e) => setFormData({ ...formData, aiModel: e.target.value })}
+            className="w-full px-2.5 py-1.5 rounded-lg text-xs border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
+          >
+            {availableModels.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-[10px] text-muted-foreground pt-1">
+            {availableModels.find((m) => m.id === formData.aiModel)?.description || ''}
+          </p>
+        </div>
+
+        {/* 3. API Key Input */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-semibold text-foreground">
-              Personal API Key
+            <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+              <KeyRound className="w-3.5 h-3.5 text-primary" />
+              <span>{providerNames[formData.aiProvider]} API Key</span>
             </label>
-            <button
-              type="button"
-              onClick={() => openPlatformUrl('/settings/api-keys')}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:opacity-90 cursor-pointer"
-            >
-              <span>Get API Key</span>
-              <ExternalLink className="w-2.5 h-2.5" />
-            </button>
+            {keyLink && (
+              <a
+                href={keyLink.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-primary hover:opacity-90 cursor-pointer"
+              >
+                <span>Get Key</span>
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            )}
           </div>
 
           <div className="relative">
             <input
               type={showKey ? 'text' : 'password'}
-              value={formData.apiKey}
-              onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-              placeholder="ca_live_xxxxxxxxxxxxxxxxxxxxxxxx"
+              value={formData.aiApiKey}
+              onChange={(e) => setFormData({ ...formData, aiApiKey: e.target.value })}
+              placeholder={
+                formData.aiProvider === 'gemini'
+                  ? 'AIzaSy...'
+                  : formData.aiProvider === 'openai'
+                  ? 'sk-...'
+                  : 'sk-ant-...'
+              }
               className="w-full pl-3 pr-8 py-2 rounded-lg text-xs font-mono border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
             />
             <button
@@ -135,20 +218,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             </button>
           </div>
-          <p className="text-[11px] text-muted-foreground pt-1 leading-tight">
-            Used to securely fetch your candidate profile and log tracked applications.
+          <p className="text-[10px] text-muted-foreground pt-1 leading-tight">
+            Stored locally on your machine via chrome.storage. Requests are sent directly to {providerNames[formData.aiProvider]}.
           </p>
         </div>
 
-        {/* Preferences */}
-        <div className="pt-2 border-t border-border space-y-2.5">
+        {/* 4. Tracking Preferences */}
+        <div className="pt-2 border-t border-border space-y-2">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-foreground">
                 Auto-log on 1-click autofill
               </p>
               <p className="text-[10px] text-muted-foreground">
-                Immediately records job to your CareerAgent tracker.
+                Immediately records job to your tracker.
               </p>
             </div>
             <input
@@ -164,10 +247,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-foreground">
-                Follow-up badge reminder
+                Follow-up badge reminder (3 days)
               </p>
               <p className="text-[10px] text-muted-foreground">
-                Shows notification count when follow-up is due (3 days).
+                Shows notification count when follow-up is due.
               </p>
             </div>
             <input
@@ -196,41 +279,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
-            <span>{isTesting ? 'Connecting...' : 'Save & Sync'}</span>
+            <span>{isTesting ? 'Verifying Key...' : 'Test & Save Key'}</span>
           </button>
         </div>
       </form>
-
-      {/* Advanced / Developer options */}
-      <details className="text-xs group">
-        <summary className="cursor-pointer text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors">
-          Advanced Server Endpoints
-        </summary>
-        <div className="p-3 mt-2 rounded-xl border border-border bg-card space-y-2">
-          <div>
-            <label className="block text-[10px] font-medium text-muted-foreground mb-0.5">
-              API Base URL
-            </label>
-            <input
-              type="url"
-              value={formData.apiUrl}
-              onChange={(e) => setFormData({ ...formData, apiUrl: e.target.value })}
-              className="w-full px-2 py-1.5 rounded-md text-xs font-mono border border-input bg-background text-foreground"
-            />
-          </div>
-          <div>
-            <label className="block text-[10px] font-medium text-muted-foreground mb-0.5">
-              Web App URL
-            </label>
-            <input
-              type="url"
-              value={formData.webAppUrl}
-              onChange={(e) => setFormData({ ...formData, webAppUrl: e.target.value })}
-              className="w-full px-2 py-1.5 rounded-md text-xs font-mono border border-input bg-background text-foreground"
-            />
-          </div>
-        </div>
-      </details>
     </div>
   );
 };

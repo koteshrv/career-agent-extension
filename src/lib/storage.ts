@@ -23,9 +23,9 @@ export const DEFAULT_PROFILE: CandidateProfile = {
 };
 
 export const DEFAULT_SETTINGS: ExtensionSettings = {
-  apiKey: '',
-  apiUrl: 'https://api.careeragent.fyi',
-  webAppUrl: 'https://careeragent.fyi',
+  aiProvider: 'gemini',
+  aiApiKey: '',
+  aiModel: 'gemini-1.5-flash',
   autoTrackOnAutofill: true,
   notificationsEnabled: true,
   followUpDays: 3,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { JobDetails } from '../types';
+import { JobDetails, ExtensionSettings } from '../types';
 import { AutofillBar } from './AutofillBar';
 import { CompanyLogo } from './CompanyLogo';
 import {
@@ -25,7 +25,7 @@ interface JobDetectorCardProps {
     type: 'success' | 'error' | 'idle';
   };
   isAlreadyTracked: boolean;
-  hasSyncedProfile: boolean;
+  settings: ExtensionSettings;
   onOpenSettings: () => void;
 }
 
@@ -38,10 +38,11 @@ export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
   isAutofilling,
   autofillStatus,
   isAlreadyTracked,
-  hasSyncedProfile,
+  settings,
   onOpenSettings,
 }) => {
   const [isSaving, setIsSaving] = useState(false);
+  const hasAIKey = Boolean(settings.aiApiKey.trim());
 
   const handleSave = async () => {
     if (!job) return;
@@ -102,7 +103,7 @@ export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Detected Job Main Card matching career-agent-web JobCard */}
+      {/* Detected Job Main Card matching career-agent-web */}
       <div className="rounded-xl border border-border bg-card p-4 shadow-2xs space-y-3">
         {/* Header row: ATS Badge + Rescan */}
         <div className="flex items-center justify-between">
@@ -159,7 +160,7 @@ export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
         <hr className="border-border my-1" />
 
         {/* 1-Click Autofill Button */}
-        {hasSyncedProfile ? (
+        {hasAIKey ? (
           <AutofillBar
             atsType={job.atsType}
             onAutofill={onTriggerAutofill}
@@ -174,7 +175,7 @@ export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
             className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border border-primary/30 bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/15 transition-colors cursor-pointer"
           >
             <KeyRound className="w-3.5 h-3.5" />
-            <span>Connect API Key to Enable 1-Click Autofill</span>
+            <span>Set AI API Key (Gemini, OpenAI) in Settings</span>
           </button>
         )}
 
@@ -191,12 +192,12 @@ export const JobDetectorCard: React.FC<JobDetectorCardProps> = ({
           {isAlreadyTracked ? (
             <>
               <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span className="font-semibold">Saved to CareerAgent Board</span>
+              <span className="font-semibold">Saved to Applications Board</span>
             </>
           ) : (
             <>
               <Bookmark className="w-3.5 h-3.5 text-muted-foreground" />
-              <span>{isSaving ? 'Saving...' : '📌 Save to CareerAgent (3-Day Reminder)'}</span>
+              <span>{isSaving ? 'Saving...' : '📌 Save to Tracker (3-Day Reminder)'}</span>
             </>
           )}
         </button>
