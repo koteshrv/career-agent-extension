@@ -1,12 +1,20 @@
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { extractJobDetails } from '../src/lib/extractors';
 import { executeAutofill } from '../src/lib/autofill';
+import { initInlineAIHelper } from '../src/lib/inline';
 import { CandidateProfile } from '../src/types';
 
 export default defineContentScript({
   matches: ['*://*/*'],
   runAt: 'document_idle',
   main() {
+    // Initialize inline CareerAgent Orbit logo helper on form textareas
+    try {
+      initInlineAIHelper(() => extractJobDetails(window.location.href, document));
+    } catch (e) {
+      console.warn('[CareerAgent] Failed to initialize inline AI helper:', e);
+    }
+
     // Listen for messages from popup or background
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       try {

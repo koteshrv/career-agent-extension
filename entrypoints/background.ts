@@ -1,5 +1,6 @@
 import { defineBackground } from 'wxt/utils/define-background';
-import { getApplications, getProfile, saveProfile, DEFAULT_PROFILE } from '../src/lib/storage';
+import { getApplications, getProfile, getSettings, saveProfile, DEFAULT_PROFILE } from '../src/lib/storage';
+import { generateAnswerForATSQuestion } from '../src/lib/ai';
 
 export default defineBackground(() => {
   // Update badge for follow-up reminders
@@ -44,6 +45,39 @@ export default defineBackground(() => {
       }
     });
   }
+
+  // Handle on-demand AI answer generation for inline textareas
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message.type === 'GENERATE_AI_ANSWER') {
+      (async () => {
+        try {
+          const [settings, profile] = await Promise.all([getSettings(), getProfile()]);
+          if (!settings.aiApiKey.trim()) {
+            sendResponse({
+              success: false,
+              error: 'AI API Key not configured. Click the CareerAgent extension icon -> Settings to add your key.',
+            });
+            return;
+          }
+
+          const answer = await generateAnswerForATSQuestion(
+            message.question,
+            message.job,
+            profile,
+            settings.aiProvider,
+            settings.aiApiKey,
+            settings.aiModel
+          );
+
+          sendResponse({ success: true, answer });
+        } catch (err: any) {
+          sendResponse({ success: false, error: err?.message || 'Failed to generate answer.' });
+        }
+      })();
+      return true; // Keep message channel open for async response
+    }
+    return false;
+  });
 
   // Initial badge update
   updateBadge();
