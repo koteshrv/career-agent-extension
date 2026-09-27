@@ -50,7 +50,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     anthropic: AI_MODELS.anthropic,
     groq: AI_MODELS.groq,
   });
-  const [customModelMode, setCustomModelMode] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error' | null;
     message: string | null;
@@ -265,54 +264,34 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <Cpu className="w-3.5 h-3.5 text-primary" />
               <span>Model Selection</span>
             </span>
-            <div className="flex items-center gap-2">
+            {(formData.aiProvider === 'gemini' || formData.aiProvider === 'groq') && (
               <button
                 type="button"
-                onClick={() => setCustomModelMode(!customModelMode)}
-                className="text-[10px] text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                onClick={handleDetectModels}
+                disabled={isDetectingModels || !formData.aiApiKey.trim()}
+                title="Detect models available for your API key"
+                className="inline-flex items-center gap-1 text-[10px] font-medium text-primary hover:opacity-80 transition-opacity disabled:opacity-40 cursor-pointer"
               >
-                {customModelMode ? 'Pick from list' : 'Custom model ID'}
+                <RefreshCw className={`w-2.5 h-2.5 ${isDetectingModels ? 'animate-spin' : ''}`} />
+                <span>{isDetectingModels ? 'Detecting...' : 'Detect Models'}</span>
               </button>
-              {(formData.aiProvider === 'gemini' || formData.aiProvider === 'groq') && (
-                <button
-                  type="button"
-                  onClick={handleDetectModels}
-                  disabled={isDetectingModels || !formData.aiApiKey.trim()}
-                  title="Detect models available for your API key"
-                  className="inline-flex items-center gap-1 text-[10px] font-medium text-primary hover:opacity-80 transition-opacity disabled:opacity-40 cursor-pointer"
-                >
-                  <RefreshCw className={`w-2.5 h-2.5 ${isDetectingModels ? 'animate-spin' : ''}`} />
-                  <span>{isDetectingModels ? 'Detecting...' : 'Detect Models'}</span>
-                </button>
-              )}
-            </div>
+            )}
           </div>
 
-          {customModelMode ? (
-            <input
-              type="text"
-              value={formData.aiModel}
-              onChange={(e) => setFormData({ ...formData, aiModel: e.target.value.trim() })}
-              placeholder="e.g. gemini-2.5-flash"
-              className="w-full px-2.5 py-1.5 rounded-lg text-xs font-mono border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-            />
-          ) : (
-            <select
-              value={formData.aiModel}
-              onChange={(e) => setFormData({ ...formData, aiModel: e.target.value })}
-              className="w-full px-2.5 py-1.5 rounded-lg text-xs border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
-            >
-              {availableModels.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          )}
+          <select
+            value={formData.aiModel}
+            onChange={(e) => setFormData({ ...formData, aiModel: e.target.value })}
+            className="w-full px-2.5 py-1.5 rounded-lg text-xs border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
+          >
+            {availableModels.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
 
           <p className="text-[10px] text-muted-foreground pt-1">
-            {availableModels.find((m) => m.id === formData.aiModel)?.description ||
-              (customModelMode ? 'Type the exact model ID from your provider.' : '')}
+            {availableModels.find((m) => m.id === formData.aiModel)?.description || ''}
           </p>
         </div>
 
