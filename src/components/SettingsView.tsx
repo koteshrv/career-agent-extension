@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ExtensionSettings, AIProvider } from '../types';
 import { saveSettings } from '../lib/storage';
-import { AI_MODELS, AI_KEY_LINKS, testAIConnection } from '../lib/ai';
+import { AI_MODELS, AI_KEY_LINKS, testAIConnection, fetchAvailableModels } from '../lib/ai';
 import {
   Sparkles,
   CheckCircle2,
@@ -12,6 +12,7 @@ import {
   Save,
   KeyRound,
   Cpu,
+  RefreshCw,
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -25,22 +26,78 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onSettingsSaved,
   onBack,
 }) => {
-  const [formData, setFormData] = useState<ExtensionSettings>(settings);
+  // Ensure we don't start with deprecated model
+  const initialSettings = {
+    ...settings,
+    aiModel:
+      settings.aiProvider === 'gemini' && settings.aiModel === 'gemini-1.5-flash'
+        ? 'gemini-2.5-flash'
+        : settings.aiModel || 'gemini-2.5-flash',
+  };
+
+  const [formData, setFormData] = useState<ExtensionSettings>(initialSettings);
   const [showKey, setShowKey] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isDetectingModels, setIsDetectingModels] = useState(false);
+  const [dynamicModels, setDynamicModels] = useState<Record<AIProvider, any[]>>({
+    gemini: AI_MODELS.gemini,
+    openai: AI_MODELS.openai,
+    anthropic: AI_MODELS.anthropic,
+    groq: AI_MODELS.groq,
+  });
+  const [customModelMode, setCustomModelMode] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error' | null;
     message: string | null;
   }>({ type: null, message: null });
 
   const handleProviderChange = (provider: AIProvider) => {
-    const models = AI_MODELS[provider];
+    const models = dynamicModels[provider] || AI_MODELS[provider];
     setFormData((prev) => ({
       ...prev,
       aiProvider: provider,
       aiModel: models[0]?.id || '',
     }));
     setFeedback({ type: null, message: null });
+  };
+
+  const handleDetectModels = async () => {
+    if (!formData.aiApiKey.trim()) {
+      setFeedback({
+        type: 'error',
+        message: 'Please paste your API Key first to detect available models.',
+      });
+      return;
+    }
+    setIsDetectingModels(true);
+    setFeedback({ type: null, message: null });
+    try {
+      const fetched = await fetchAvailableModels(formData.aiProvider, formData.aiApiKey);
+      if (fetched && fetched.length > 0) {
+        setDynamicModels((prev) => ({ ...prev, [formData.aiProvider]: fetched }));
+        // If current model not in fetched, pick first
+        const exists = fetched.some((m) => m.id === formData.aiModel);
+        if (!exists) {
+          setFormData((prev) => ({ ...prev, aiModel: fetched[0].id }));
+        }
+        setFeedback({
+          type: 'success',
+          message: `Discovered ${fetched.length} supported models for your key!`,
+        });
+      } else {
+        setFeedback({
+          type: 'error',
+          message: 'No compatible models found for this key.',
+        });
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err?.message || 'Failed to detect models.',
+      });
+    } finally {
+      setIsDetectingModels(false);
+    }
   };
 
   const handleTestAndSave = async (e?: React.FormEvent) => {
@@ -93,7 +150,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     groq: 'Groq',
   };
 
-  const availableModels = AI_MODELS[formData.aiProvider] || [];
+  const availableModels =
+    dynamicModels[formData.aiProvider] || AI_MODELS[formData.aiProvider] || [];
   const keyLink = AI_KEY_LINKS[formData.aiProvider];
 
   return (
@@ -151,28 +209,61 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
 
-        {/* 2. Model Selection Dropdown */}
+        {/* 2. Model Selection Dropdown & Auto-Discovery */}
         <div>
-          <label className="flex items-center justify-between text-xs font-semibold text-foreground mb-1">
+          <div className="flex items-center justify-between text-xs font-semibold text-foreground mb-1">
             <span className="flex items-center gap-1">
               <Cpu className="w-3.5 h-3.5 text-primary" />
               <span>Model Selection</span>
             </span>
-          </label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCustomModelMode(!customModelMode)}
+                className="text-[10px] text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+              >
+                {customModelMode ? 'Pick from list' : 'Custom model ID'}
+              </button>
+              {(formData.aiProvider === 'gemini' || formData.aiProvider === 'groq') && (
+                <button
+                  type="button"
+                  onClick={handleDetectModels}
+                  disabled={isDetectingModels || !formData.aiApiKey.trim()}
+                  title="Detect models available for your API key"
+                  className="inline-flex items-center gap-1 text-[10px] font-medium text-primary hover:opacity-80 transition-opacity disabled:opacity-40 cursor-pointer"
+                >
+                  <RefreshCw className={`w-2.5 h-2.5 ${isDetectingModels ? 'animate-spin' : ''}`} />
+                  <span>{isDetectingModels ? 'Detecting...' : 'Detect Models'}</span>
+                </button>
+              )}
+            </div>
+          </div>
 
-          <select
-            value={formData.aiModel}
-            onChange={(e) => setFormData({ ...formData, aiModel: e.target.value })}
-            className="w-full px-2.5 py-1.5 rounded-lg text-xs border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
-          >
-            {availableModels.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
+          {customModelMode ? (
+            <input
+              type="text"
+              value={formData.aiModel}
+              onChange={(e) => setFormData({ ...formData, aiModel: e.target.value.trim() })}
+              placeholder="e.g. gemini-2.5-flash"
+              className="w-full px-2.5 py-1.5 rounded-lg text-xs font-mono border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            />
+          ) : (
+            <select
+              value={formData.aiModel}
+              onChange={(e) => setFormData({ ...formData, aiModel: e.target.value })}
+              className="w-full px-2.5 py-1.5 rounded-lg text-xs border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
+            >
+              {availableModels.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          )}
+
           <p className="text-[10px] text-muted-foreground pt-1">
-            {availableModels.find((m) => m.id === formData.aiModel)?.description || ''}
+            {availableModels.find((m) => m.id === formData.aiModel)?.description ||
+              (customModelMode ? 'Type the exact model ID from your provider.' : '')}
           </p>
         </div>
 

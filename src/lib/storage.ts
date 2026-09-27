@@ -25,7 +25,7 @@ export const DEFAULT_PROFILE: CandidateProfile = {
 export const DEFAULT_SETTINGS: ExtensionSettings = {
   aiProvider: 'gemini',
   aiApiKey: '',
-  aiModel: 'gemini-1.5-flash',
+  aiModel: 'gemini-2.5-flash',
   autoTrackOnAutofill: true,
   notificationsEnabled: true,
   followUpDays: 3,
@@ -89,7 +89,12 @@ async function setStorageItem<T>(key: string, value: T): Promise<void> {
 // ==========================================
 export async function getSettings(): Promise<ExtensionSettings> {
   const settings = await getStorageItem<ExtensionSettings>('careeragent_settings', DEFAULT_SETTINGS);
-  return { ...DEFAULT_SETTINGS, ...settings };
+  const resolved = { ...DEFAULT_SETTINGS, ...settings };
+  // Auto-upgrade retired gemini-1.5-flash to gemini-2.5-flash
+  if (resolved.aiProvider === 'gemini' && (resolved.aiModel === 'gemini-1.5-flash' || !resolved.aiModel)) {
+    resolved.aiModel = 'gemini-2.5-flash';
+  }
+  return resolved;
 }
 
 export async function saveSettings(settings: ExtensionSettings): Promise<void> {

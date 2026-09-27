@@ -2,9 +2,12 @@ import { AIProvider, AIModelOption, CandidateProfile, JobDetails } from '../../t
 
 export const AI_MODELS: Record<AIProvider, AIModelOption[]> = {
   gemini: [
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (Recommended - Free Tier)', description: 'Fast, high quality, generous free tier' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'Deep reasoning for complex questions' },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (Recommended)', description: 'Fast, latest generation, free tier supported' },
     { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'Next-generation low-latency model' },
+    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', description: 'Deep reasoning for complex questions' },
+    { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash (Latest)', description: 'Multimodal fast model' },
+    { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro (Latest)', description: 'Advanced reasoning' },
+    { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash-Lite', description: 'Ultra-fast and cost-efficient' },
   ],
   openai: [
     { id: 'gpt-4o-mini', name: 'GPT-4o mini (Recommended)', description: 'Fast, cost-efficient, great for form filling' },
@@ -57,7 +60,8 @@ export async function executeAIRequest(
 
   // 1. Google Gemini
   if (provider === 'gemini') {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
+    const cleanModel = model.replace(/^models\//, '').trim() || 'gemini-2.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${cleanKey}`;
     const body: any = {
       contents: [{ parts: [{ text: prompt }] }],
     };
@@ -73,7 +77,13 @@ export async function executeAIRequest(
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `Gemini API error (${res.status})`);
+      const rawMsg = err?.error?.message || `Gemini API error (${res.status})`;
+      if (res.status === 404 || rawMsg.includes('is not found') || rawMsg.includes('not supported')) {
+        throw new Error(
+          `"${cleanModel}" was not found or has been retired. Please select "Gemini 2.5 Flash" or "Gemini 2.0 Flash" in the Model dropdown.`
+        );
+      }
+      throw new Error(rawMsg);
     }
 
     const data = await res.json();
@@ -220,3 +230,74 @@ Your drafted response:`;
 
   return await executeAIRequest(provider, apiKey, model, prompt, systemPrompt);
 }
+
+/**
+ * Dynamically fetch available models directly from AI provider APIs
+ */
+export async function fetchAvailableModels(
+  provider: AIProvider,
+  apiKey: string
+): Promise<AIModelOption[]> {
+  const cleanKey = apiKey.trim();
+  if (!cleanKey) return AI_MODELS[provider] || [];
+
+  if (provider === 'gemini') {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        return AI_MODELS.gemini;
+      }
+      const data = await res.json();
+      const rawModels: any[] = data.models || [];
+      const contentModels = rawModels
+        .filter((m) => {
+          const methods: string[] = m.supportedGenerationMethods || [];
+          return methods.includes('generateContent');
+        })
+        .map((m) => {
+          const id: string = m.name.replace(/^models\//, '');
+          const displayName = m.displayName || id;
+          return {
+            id,
+            name: displayName.includes(id) ? displayName : `${displayName} (${id})`,
+            description: m.description ? m.description.slice(0, 90) : '',
+          };
+        });
+
+      if (contentModels.length > 0) {
+        return contentModels.sort((a, b) => {
+          const aFlash = a.id.toLowerCase().includes('flash');
+          const bFlash = b.id.toLowerCase().includes('flash');
+          if (aFlash && !bFlash) return -1;
+          if (!aFlash && bFlash) return 1;
+          return a.id.localeCompare(b.id);
+        });
+      }
+    } catch {
+      // Fallback to static list
+    }
+  }
+
+  if (provider === 'groq') {
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: { Authorization: `Bearer ${cleanKey}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const models: any[] = data.data || [];
+        return models.map((m) => ({
+          id: m.id,
+          name: m.id,
+          description: `Groq LPU model (${m.owned_by || 'groq'})`,
+        }));
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  return AI_MODELS[provider] || [];
+}
+
