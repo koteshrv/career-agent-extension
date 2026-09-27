@@ -86,4 +86,4 @@ export interface SyncedProfileSummary {
   profile: CandidateProfile;
 }
 
-export type ExtensionView = 'main' | 'settings';
+export type ExtensionView = 'main' | 'settings' | 'detect' | 'applications' | 'profile';

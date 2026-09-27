@@ -126,8 +126,7 @@ export async function openPlatformUrl(path: string = '/'): Promise<void> {
   }
 }
 
-export async function syncProfileToServer(profile: CandidateProfile): Promise<boolean> {
+export async function syncProfileToServer(_profile: CandidateProfile): Promise<boolean> {
   const settings = await getSettings();
-  if (!settings.apiKey) return false;
-  return true;
+  return Boolean(settings.apiKey);
 }

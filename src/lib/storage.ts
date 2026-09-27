@@ -108,6 +108,20 @@ export async function saveSyncedProfile(profile: SyncedProfileSummary | null): P
 }
 
 // ==========================================
+// Candidate Profile Storage
+// ==========================================
+export async function getProfile(): Promise<CandidateProfile> {
+  const synced = await getSyncedProfile();
+  if (synced?.profile) return synced.profile;
+  const profile = await getStorageItem<CandidateProfile>('careeragent_profile', DEFAULT_PROFILE);
+  return { ...DEFAULT_PROFILE, ...profile };
+}
+
+export async function saveProfile(profile: CandidateProfile): Promise<void> {
+  await setStorageItem('careeragent_profile', profile);
+}
+
+// ==========================================
 // Tracked Applications Storage
 // ==========================================
 export function calculateFollowUpDate(days: number = 3): string {
@@ -164,7 +178,7 @@ export async function addApplication(appData: {
     apps.unshift(newApp);
   }
 
-  // Keep last 20 recent applications locally
+  // Keep recent applications locally
   await saveApplications(apps.slice(0, 20));
   return newApp;
 }
@@ -179,17 +193,6 @@ export async function deleteApplication(id: string): Promise<void> {
   const apps = await getApplications();
   const filtered = apps.filter((app) => app.id !== id);
   await saveApplications(filtered);
-}
-
-export async function getProfile(): Promise<CandidateProfile> {
-  const synced = await getSyncedProfile();
-  if (synced?.profile) return synced.profile;
-  const profile = await getStorageItem<CandidateProfile>('careeragent_profile', DEFAULT_PROFILE);
-  return { ...DEFAULT_PROFILE, ...profile };
-}
-
-export async function saveProfile(profile: CandidateProfile): Promise<void> {
-  await setStorageItem('careeragent_profile', profile);
 }
 
 // ==========================================

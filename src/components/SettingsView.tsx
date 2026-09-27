@@ -10,9 +10,6 @@ import {
   Eye,
   EyeOff,
   Save,
-  Globe,
-  Bell,
-  Sparkles,
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -76,15 +73,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-3.5">
       {/* Title */}
       <div>
-        <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-          <KeyRound className="w-4 h-4 text-brand-600" />
+        <h2 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+          <KeyRound className="w-4 h-4 text-primary" />
           <span>Extension Settings</span>
         </h2>
-        <p className="text-[11px] text-stone-500 dark:text-stone-400">
-          Connect to your CareerAgent web account.
+        <p className="text-[11px] text-muted-foreground">
+          Connect to your CareerAgent web account to sync candidate profiles.
         </p>
       </div>
 
@@ -92,30 +89,30 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div
           className={`flex items-center gap-2 p-2.5 rounded-lg text-xs border animate-in fade-in ${
             feedback.type === 'success'
-              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-200'
-              : 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-200'
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+              : 'bg-destructive/10 border-destructive/20 text-destructive'
           }`}
         >
           {feedback.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           ) : (
-            <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
           )}
           <span className="font-medium">{feedback.message}</span>
         </div>
       )}
 
       {/* API Key Box */}
-      <form onSubmit={handleTestAndSave} className="space-y-3 p-3 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 shadow-2xs">
+      <form onSubmit={handleTestAndSave} className="space-y-3.5 p-3.5 rounded-xl border border-border bg-card shadow-2xs">
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-[11px] font-bold text-stone-800 dark:text-stone-200">
+            <label className="text-xs font-semibold text-foreground">
               Personal API Key
             </label>
             <button
               type="button"
               onClick={() => openPlatformUrl('/settings/api-keys')}
-              className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-brand-600 hover:text-brand-500"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:opacity-90 cursor-pointer"
             >
               <span>Get API Key</span>
               <ExternalLink className="w-2.5 h-2.5" />
@@ -128,29 +125,29 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               value={formData.apiKey}
               onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
               placeholder="ca_live_xxxxxxxxxxxxxxxxxxxxxxxx"
-              className="w-full pl-3 pr-8 py-2 rounded-lg text-xs font-mono border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full pl-3 pr-8 py-2 rounded-lg text-xs font-mono border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
             />
             <button
               type="button"
               onClick={() => setShowKey(!showKey)}
-              className="absolute right-2.5 top-2.5 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
+              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
             >
               {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             </button>
           </div>
-          <p className="text-[10px] text-stone-400 pt-1">
-            Used to securely fetch your synced profile and log tracked applications.
+          <p className="text-[11px] text-muted-foreground pt-1 leading-tight">
+            Used to securely fetch your candidate profile and log tracked applications.
           </p>
         </div>
 
         {/* Preferences */}
-        <div className="pt-2 border-t border-stone-100 dark:border-stone-800/80 space-y-2.5">
+        <div className="pt-2 border-t border-border space-y-2.5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-stone-800 dark:text-stone-200">
+              <p className="text-xs font-medium text-foreground">
                 Auto-log on 1-click autofill
               </p>
-              <p className="text-[10px] text-stone-400">
+              <p className="text-[10px] text-muted-foreground">
                 Immediately records job to your CareerAgent tracker.
               </p>
             </div>
@@ -160,16 +157,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               onChange={(e) =>
                 setFormData({ ...formData, autoTrackOnAutofill: e.target.checked })
               }
-              className="rounded border-stone-300 text-brand-600 focus:ring-brand-500 h-4 w-4"
+              className="rounded border-input text-primary focus:ring-primary h-4 w-4 cursor-pointer"
             />
           </div>
 
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-stone-800 dark:text-stone-200">
+              <p className="text-xs font-medium text-foreground">
                 Follow-up badge reminder
               </p>
-              <p className="text-[10px] text-stone-400">
+              <p className="text-[10px] text-muted-foreground">
                 Shows notification count when follow-up is due (3 days).
               </p>
             </div>
@@ -179,24 +176,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               onChange={(e) =>
                 setFormData({ ...formData, notificationsEnabled: e.target.checked })
               }
-              className="rounded border-stone-300 text-brand-600 focus:ring-brand-500 h-4 w-4"
+              className="rounded border-input text-primary focus:ring-primary h-4 w-4 cursor-pointer"
             />
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-2 border-t border-stone-100 dark:border-stone-800/80 flex items-center justify-end gap-2">
+        <div className="pt-2 border-t border-border flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onBack}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary hover:bg-secondary/80 text-foreground transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isTesting}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white shadow-xs transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
             <span>{isTesting ? 'Connecting...' : 'Save & Sync'}</span>
@@ -206,30 +203,30 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       {/* Advanced / Developer options */}
       <details className="text-xs group">
-        <summary className="cursor-pointer text-[11px] font-semibold text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors">
+        <summary className="cursor-pointer text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors">
           Advanced Server Endpoints
         </summary>
-        <div className="p-3 mt-2 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 space-y-2">
+        <div className="p-3 mt-2 rounded-xl border border-border bg-card space-y-2">
           <div>
-            <label className="block text-[10px] font-medium text-stone-500 mb-0.5">
+            <label className="block text-[10px] font-medium text-muted-foreground mb-0.5">
               API Base URL
             </label>
             <input
               type="url"
               value={formData.apiUrl}
               onChange={(e) => setFormData({ ...formData, apiUrl: e.target.value })}
-              className="w-full px-2 py-1 rounded text-[11px] font-mono border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800"
+              className="w-full px-2 py-1.5 rounded-md text-xs font-mono border border-input bg-background text-foreground"
             />
           </div>
           <div>
-            <label className="block text-[10px] font-medium text-stone-500 mb-0.5">
+            <label className="block text-[10px] font-medium text-muted-foreground mb-0.5">
               Web App URL
             </label>
             <input
               type="url"
               value={formData.webAppUrl}
               onChange={(e) => setFormData({ ...formData, webAppUrl: e.target.value })}
-              className="w-full px-2 py-1 rounded text-[11px] font-mono border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800"
+              className="w-full px-2 py-1.5 rounded-md text-xs font-mono border border-input bg-background text-foreground"
             />
           </div>
         </div>

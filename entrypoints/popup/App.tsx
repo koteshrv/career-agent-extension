@@ -42,7 +42,7 @@ export const App: React.FC = () => {
     type: 'idle',
   });
 
-  // Apply dark mode class
+  // Apply dark mode class to document
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -116,7 +116,7 @@ export const App: React.FC = () => {
         setDetectedJob({
           title: 'Senior Software Engineer, Core Infrastructure',
           company: 'Stripe',
-          location: 'San Francisco, CA / Remote',
+          location: 'San Francisco, CA (Hybrid)',
           url: 'https://boards.greenhouse.io/stripe/jobs/demo',
           atsType: 'greenhouse',
         });
@@ -247,7 +247,7 @@ export const App: React.FC = () => {
   );
 
   return (
-    <div className="w-[380px] min-h-[480px] max-h-[580px] flex flex-col bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 font-sans select-none overflow-x-hidden">
+    <div className="w-[380px] min-h-[480px] max-h-[580px] flex flex-col bg-background text-foreground font-sans select-none overflow-x-hidden">
       {/* Header */}
       <Header
         currentView={currentView}
