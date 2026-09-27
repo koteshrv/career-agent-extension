@@ -21,9 +21,16 @@ export const Header: React.FC<HeaderProps> = ({
 
   // Clean model display name
   const modelShortName = settings.aiModel
+    .replace('gemini-3.5-flash-lite', 'Gemini 3.5 Lite')
+    .replace('gemini-3.1-flash-lite', 'Gemini 3.1 Lite')
+    .replace('gemini-3.8-flash', 'Gemini 3.8')
+    .replace('gemini-3.7-flash', 'Gemini 3.7')
+    .replace('gemini-3.6-flash', 'Gemini 3.6')
+    .replace('gemini-3.5-flash', 'Gemini 3.5')
+    .replace('gemini-3-flash', 'Gemini 3')
+    .replace('gemini-2.5-flash-lite', 'Gemini 2.5 Lite')
     .replace('gemini-2.5-', 'Gemini 2.5 ')
     .replace('gemini-2.0-', 'Gemini 2.0 ')
-    .replace('gemini-1.5-', 'Gemini 1.5 ')
     .replace('gpt-4o-mini', 'GPT-4o mini')
     .replace('gpt-4o', 'GPT-4o')
     .replace('claude-3-5-sonnet-20241022', 'Claude Sonnet')

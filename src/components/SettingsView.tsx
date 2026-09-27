@@ -31,9 +31,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const initialSettings = {
     ...settings,
     aiModel:
-      settings.aiProvider === 'gemini' && (settings.aiModel === 'gemini-1.5-flash' || !settings.aiModel)
-        ? 'gemini-2.5-flash'
-        : settings.aiModel || 'gemini-2.5-flash',
+      settings.aiProvider === 'gemini' &&
+      (settings.aiModel === 'gemini-1.5-flash' ||
+        settings.aiModel === 'gemini-2.5-flash' ||
+        !settings.aiModel)
+        ? 'gemini-3.5-flash-lite'
+        : settings.aiModel || 'gemini-3.5-flash-lite',
   };
 
   const [formData, setFormData] = useState<ExtensionSettings>(initialSettings);

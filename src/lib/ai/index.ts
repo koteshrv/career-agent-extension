@@ -2,12 +2,14 @@ import { AIProvider, AIModelOption, CandidateProfile, JobDetails } from '../../t
 
 export const AI_MODELS: Record<AIProvider, AIModelOption[]> = {
   gemini: [
-    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (Recommended)', description: 'Fast, latest generation, free tier supported' },
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'Next-generation low-latency model' },
-    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', description: 'Deep reasoning for complex questions' },
-    { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash (Latest)', description: 'Multimodal fast model' },
-    { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro (Latest)', description: 'Advanced reasoning' },
-    { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash-Lite', description: 'Ultra-fast and cost-efficient' },
+    { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash-Lite (Recommended)', description: 'Generous quota: 500 RPD, 15 RPM, 250K TPM' },
+    { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash-Lite', description: 'Generous quota: 500 RPD, 15 RPM, 250K TPM' },
+    { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', description: 'Flagship reasoning model (20 RPD, 5 RPM)' },
+    { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash', description: 'Advanced text & reasoning (20 RPD, 5 RPM)' },
+    { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', description: 'Fast multimodal generation (20 RPD, 5 RPM)' },
+    { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', description: 'High quality text model (20 RPD, 5 RPM)' },
+    { id: 'gemini-3-flash', name: 'Gemini 3 Flash', description: 'Balanced performance (20 RPD, 5 RPM)' },
+    { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash-Lite', description: 'Lightweight model (20 RPD, 10 RPM)' },
   ],
   openai: [
     { id: 'gpt-4o-mini', name: 'GPT-4o mini (Recommended)', description: 'Fast, cost-efficient, great for form filling' },
@@ -60,7 +62,7 @@ export async function executeAIRequest(
 
   // 1. Google Gemini
   if (provider === 'gemini') {
-    const cleanModel = model.replace(/^models\//, '').trim() || 'gemini-2.5-flash';
+    const cleanModel = model.replace(/^models\//, '').trim() || 'gemini-3.5-flash-lite';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${cleanKey}`;
     const body: any = {
       contents: [{ parts: [{ text: prompt }] }],
@@ -80,7 +82,7 @@ export async function executeAIRequest(
       const rawMsg = err?.error?.message || `Gemini API error (${res.status})`;
       if (res.status === 404 || rawMsg.includes('is not found') || rawMsg.includes('not supported')) {
         throw new Error(
-          `"${cleanModel}" was not found or has been retired. Please select "Gemini 2.5 Flash" or "Gemini 2.0 Flash" in the Model dropdown.`
+          `"${cleanModel}" was not found or has been retired. Please select "Gemini 3.5 Flash-Lite" in the Model dropdown.`
         );
       }
       throw new Error(rawMsg);
