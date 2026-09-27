@@ -24,7 +24,6 @@ import {
 import { Header } from '../../src/components/Header';
 import { JobDetectorCard } from '../../src/components/JobDetectorCard';
 import { ProfileSyncBar } from '../../src/components/ProfileSyncBar';
-import { RecentApplicationsWidget } from '../../src/components/RecentApplicationsWidget';
 import { SettingsView } from '../../src/components/SettingsView';
 
 export const App: React.FC = () => {
@@ -302,13 +301,6 @@ export const App: React.FC = () => {
               settings={settings}
               syncedProfile={syncedProfile}
               onOpenSettings={() => setCurrentView('settings')}
-            />
-
-            {/* 3. Recent Tracked Applications Widget */}
-            <RecentApplicationsWidget
-              applications={applications}
-              onDeleteApplication={handleDeleteApplication}
-              onClearApplications={handleClearApplications}
             />
           </>
         )}

@@ -54,12 +54,9 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="text-primary hover:opacity-90 transition-opacity flex items-center">
               <Orbit className="h-5 w-5 stroke-[2.2]" />
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center">
               <span className="font-bold text-base tracking-tight text-foreground">
                 Career<span className="text-primary">Agent</span>
-              </span>
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-secondary text-foreground rounded-full border border-border shadow-2xs">
-                AI Companion
               </span>
             </div>
           </div>
