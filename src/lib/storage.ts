@@ -212,7 +212,7 @@ export async function clearApplications(): Promise<void> {
 // Theme Storage
 // ==========================================
 export async function getTheme(): Promise<'light' | 'dark'> {
-  return await getStorageItem<'light' | 'dark'>('careeragent_theme', 'light');
+  return await getStorageItem<'light' | 'dark'>('careeragent_theme', 'dark');
 }
 
 export async function saveTheme(theme: 'light' | 'dark'): Promise<void> {

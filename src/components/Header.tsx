@@ -1,21 +1,17 @@
 import React from 'react';
 import { ExtensionView, ExtensionSettings } from '../types';
-import { Orbit, Settings, ArrowLeft, Sun, Moon } from 'lucide-react';
+import { Orbit, Settings, ArrowLeft } from 'lucide-react';
 
 interface HeaderProps {
   currentView: ExtensionView;
   onViewChange: (view: ExtensionView) => void;
   settings: ExtensionSettings;
-  theme: 'light' | 'dark';
-  onThemeToggle: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentView,
   onViewChange,
   settings,
-  theme,
-  onThemeToggle,
 }) => {
   const hasKey = Boolean(settings.aiApiKey.trim());
 
@@ -62,13 +58,13 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        {/* Right: AI Key Status & Controls */}
+        {/* Right: AI Key Status & Settings */}
         <div className="flex items-center gap-1.5">
           {/* AI Model Status Pill */}
           <button
             onClick={() => onViewChange('settings')}
             title={hasKey ? `Active Model: ${settings.aiModel}` : 'Configure AI API Key in Settings'}
-            className={`h-7 flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-medium border border-border/80 transition-all cursor-pointer shadow-2xs ${
+            className={`h-7 flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-medium border border-border/80 transition-all cursor-pointer shadow-2xs select-none ${
               hasKey
                 ? 'bg-card text-foreground hover:bg-muted/50 hover:border-border'
                 : 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/15'
@@ -79,19 +75,9 @@ export const Header: React.FC<HeaderProps> = ({
                 hasKey ? 'bg-emerald-500 animate-pulse' : 'bg-primary'
               }`}
             />
-            <span className="truncate max-w-[100px] text-[11px] font-semibold">
+            <span className="truncate max-w-[110px] text-[11px] font-semibold">
               {hasKey ? modelShortName : 'Set AI Key'}
             </span>
-          </button>
-
-          {/* Theme Toggle */}
-          <button
-            onClick={onThemeToggle}
-            className="h-7 w-7 rounded-lg border border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-muted/50 flex items-center justify-center transition-all cursor-pointer select-none shadow-2xs"
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            aria-label="Toggle theme"
-          >
-            {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5" />}
           </button>
 
           {/* Settings button */}
