@@ -153,15 +153,15 @@ function openAIModal(
 
   const style = document.createElement('style');
   style.textContent = `
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Google Sans", "Segoe UI", Roboto, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Google Sans', 'Product Sans', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     .card {
-      width: 480px;
-      max-width: 90vw;
-      background: #18181b;
-      color: #fafafa;
-      border: 1px solid #27272a;
+      width: 500px;
+      max-width: 92vw;
+      background: #16181D;
+      color: #F2F3F5;
+      border: 1px solid #25272D;
       border-radius: 14px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
       overflow: hidden;
       animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -174,8 +174,8 @@ function openAIModal(
       align-items: center;
       justify-content: space-between;
       padding: 12px 16px;
-      border-bottom: 1px solid #27272a;
-      background: #09090b;
+      border-bottom: 1px solid #25272D;
+      background: #121316;
     }
     .brand {
       display: flex;
@@ -183,30 +183,33 @@ function openAIModal(
       gap: 8px;
       font-size: 13px;
       font-weight: 700;
-      color: #ffffff;
+      color: #F2F3F5;
     }
-    .brand-highlight { color: #ea580c; }
+    .brand-highlight { color: #ea580c; font-weight: 600; }
     .badge {
       font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 12px;
-      background: #27272a;
-      color: #a1a1aa;
-      border: 1px solid #3f3f46;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: #202228;
+      color: #8A8F98;
+      border: 1px solid #25272D;
+      font-weight: 500;
     }
     .close-btn {
       background: transparent;
-      border: none;
-      color: #71717a;
+      border: 1px solid transparent;
+      color: #8A8F98;
       cursor: pointer;
-      font-size: 16px;
-      padding: 4px;
-      border-radius: 4px;
+      font-size: 14px;
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all 0.15s ease;
     }
-    .close-btn:hover { color: #ffffff; background: #27272a; }
+    .close-btn:hover { color: #F2F3F5; background: #202228; border-color: #25272D; }
     .body {
       padding: 16px;
       display: flex;
@@ -214,9 +217,10 @@ function openAIModal(
       gap: 12px;
     }
     .question-box {
-      background: #27272a;
+      background: #202228;
       padding: 10px 12px;
       border-radius: 8px;
+      border: 1px solid #25272D;
       border-left: 3px solid #ea580c;
     }
     .question-title {
@@ -230,16 +234,16 @@ function openAIModal(
     .question-text {
       font-size: 12px;
       font-weight: 500;
-      color: #e4e4e7;
+      color: #F2F3F5;
       line-height: 1.4;
     }
     .textarea-preview {
       width: 100%;
       height: 140px;
-      background: #09090b;
-      border: 1px solid #3f3f46;
+      background: #121316;
+      border: 1px solid #25272D;
       border-radius: 8px;
-      color: #f4f4f5;
+      color: #F2F3F5;
       padding: 10px 12px;
       font-size: 12px;
       line-height: 1.5;
@@ -254,16 +258,16 @@ function openAIModal(
       align-items: center;
       justify-content: center;
       gap: 8px;
-      background: #09090b;
-      border: 1px dashed #3f3f46;
+      background: #121316;
+      border: 1px dashed #25272D;
       border-radius: 8px;
-      color: #a1a1aa;
+      color: #8A8F98;
       font-size: 12px;
     }
     .spinner {
       width: 20px;
       height: 20px;
-      border: 2px solid #27272a;
+      border: 2px solid #202228;
       border-top-color: #ea580c;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
@@ -283,12 +287,12 @@ function openAIModal(
       align-items: center;
       justify-content: space-between;
       padding: 12px 16px;
-      border-top: 1px solid #27272a;
-      background: #09090b;
+      border-top: 1px solid #25272D;
+      background: #121316;
     }
     .token-notice {
       font-size: 10px;
-      color: #71717a;
+      color: #8A8F98;
     }
     .actions {
       display: flex;
@@ -297,7 +301,7 @@ function openAIModal(
     }
     .btn {
       padding: 6px 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
@@ -305,13 +309,15 @@ function openAIModal(
       transition: all 0.15s ease;
     }
     .btn-secondary {
-      background: #27272a;
-      color: #e4e4e7;
+      background: #202228;
+      border: 1px solid #25272D;
+      color: #F2F3F5;
     }
-    .btn-secondary:hover { background: #3f3f46; }
+    .btn-secondary:hover { background: #25272D; }
     .btn-primary {
       background: #ea580c;
       color: #ffffff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
     .btn-primary:hover { background: #f97316; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -325,8 +331,8 @@ function openAIModal(
     <div class="header">
       <div class="brand">
         ${ORBIT_SVG}
-        <span>Career<span class="brand-highlight">Agent</span> AI</span>
-        <span class="badge">Question Assistant</span>
+        <span>careeragent<span class="brand-highlight">.fyi</span></span>
+        <span class="badge">AI Assistant</span>
       </div>
       <button class="close-btn" id="ca-close">✕</button>
     </div>

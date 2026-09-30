@@ -8,7 +8,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Google Sans', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        sans: ['Google Sans', 'Product Sans', 'Plus Jakarta Sans', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background) / <alpha-value>)',
@@ -44,6 +44,12 @@ export default {
         border: 'hsl(var(--border) / <alpha-value>)',
         input: 'hsl(var(--input) / <alpha-value>)',
         ring: 'hsl(var(--ring) / <alpha-value>)',
+        status: {
+          new: 'hsl(var(--status-new) / <alpha-value>)',
+          applied: 'hsl(var(--status-applied) / <alpha-value>)',
+          interviewing: 'hsl(var(--status-interviewing) / <alpha-value>)',
+          rejected: 'hsl(var(--status-rejected) / <alpha-value>)',
+        },
         brand: {
           50: '#fff7ed',
           100: '#ffedd5',
