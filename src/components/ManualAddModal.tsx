@@ -6,10 +6,10 @@ interface ManualAddModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (appData: {
-    jobTitle: string;
+    title: string;
     company: string;
     location: string;
-    jobUrl: string;
+    url: string;
     status: ApplicationStatus;
   }) => Promise<void>;
 }
@@ -35,10 +35,10 @@ export const ManualAddModal: React.FC<ManualAddModalProps> = ({
     setIsSubmitting(true);
     try {
       await onAdd({
-        jobTitle,
+        title: jobTitle,
         company,
         location,
-        jobUrl,
+        url: jobUrl,
         status,
       });
       onClose();

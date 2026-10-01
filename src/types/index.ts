@@ -1,9 +1,33 @@
 export type WorkAuthorizationStatus =
   | 'US_CITIZEN'
   | 'GREEN_CARD'
+  | 'PERMANENT_RESIDENT'
   | 'NEED_SPONSORSHIP'
+  | 'STUDENT_VISA'
   | 'OTHER';
 
+export interface WorkExperience {
+  id: string;
+  company: string;
+  role: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  description: string;
+}
+
+export interface Education {
+  id: string;
+  institution: string;
+  degree: string;
+  fieldOfStudy: string;
+  graduationYear: string;
+}
+
+/**
+ * Candidate profile. Contact + work-auth fields are required (the popup form edits them);
+ * the rich fields are optional and arrive from the careeragent.fyi dashboard over the bridge.
+ */
 export interface CandidateProfile {
   firstName: string;
   lastName: string;
@@ -18,6 +42,15 @@ export interface CandidateProfile {
   gender?: string;
   veteranStatus?: string;
   disabilityStatus?: string;
+  headline?: string;
+  summary?: string;
+  skills?: string[];
+  keyAccomplishments?: string[];
+  experiences?: WorkExperience[];
+  education?: Education[];
+  resumeFileName?: string;
+  resumeText?: string;
+  updatedAt?: string;
 }
 
 export type ATSType =
@@ -44,20 +77,25 @@ export type ApplicationStatus =
   | 'APPLIED'
   | 'INTERVIEWING'
   | 'OFFER'
-  | 'REJECTED';
+  | 'ARCHIVED';
 
+/** Same shape as the web dashboard's TrackedApplication so records pass through the bridge unchanged. */
 export interface TrackedApplication {
   id: string;
-  jobTitle: string;
   company: string;
-  location: string;
-  jobUrl: string;
-  atsType?: ATSType | string;
+  title: string;
+  location?: string;
+  url: string;
+  salary?: string;
   status: ApplicationStatus;
-  appliedAt: string; // ISO string
-  followUpDate: string; // ISO string (+3 days by default)
+  appliedDate: string; // ISO
+  followUpDate?: string; // ISO
+  followedUp?: boolean;
   notes?: string;
-  syncedWithServer?: boolean;
+  contactName?: string;
+  contactEmail?: string;
+  atsProvider?: string;
+  updatedAt: string; // ISO, last-write-wins clock for sync
 }
 
 export interface AutofillResult {
@@ -85,13 +123,11 @@ export interface ExtensionSettings {
   followUpDays: number;
 }
 
-export interface SyncedProfileSummary {
-  userId: string;
-  name: string;
-  email: string;
-  avatarUrl?: string;
-  lastSyncedAt: string;
-  profile: CandidateProfile;
+export interface ResumeFilters {
+  roles: string;
+  keywords: string;
+  excludes: string;
+  location: string;
 }
 
 export type ExtensionView = 'main' | 'settings' | 'detect' | 'applications' | 'profile';

@@ -1,5 +1,6 @@
 import { setNativeValue } from '../autofill/helpers';
 import { JobDetails } from '../../types';
+import { request, BridgeError } from '../messages';
 
 const ORBIT_SVG = `
 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block; flex-shrink:0;">
@@ -387,25 +388,23 @@ function openAIModal(
     regenBtn.disabled = true;
 
     try {
-      const response = await new Promise<any>((resolve) => {
-        chrome.runtime.sendMessage(
-          {
-            type: 'GENERATE_AI_ANSWER',
-            question,
-            job: job || {
-              title: 'Position',
-              company: document.title || 'Company',
-              location: 'Remote',
-              url: window.location.href,
-              atsType: 'generic',
-            },
+      const { answer } = await request<{ answer: string }>(
+        {
+          type: 'GENERATE_AI_ANSWER',
+          question,
+          job: job || {
+            title: 'Position',
+            company: document.title || 'Company',
+            location: 'Remote',
+            url: window.location.href,
+            atsType: 'generic',
           },
-          (res) => resolve(res)
-        );
-      });
+        },
+        90_000
+      );
 
-      if (response && response.success && response.answer) {
-        currentDraft = response.answer;
+      if (answer) {
+        currentDraft = answer;
         contentArea.innerHTML = `
           <textarea class="textarea-preview" id="ca-result-text">${escapeHtml(currentDraft)}</textarea>
         `;
@@ -418,20 +417,14 @@ function openAIModal(
         insertBtn.disabled = false;
         regenBtn.disabled = false;
       } else {
-        const errorMsg =
-          response?.error || 'Failed to generate answer. Please ensure your AI API Key is configured in settings.';
-        contentArea.innerHTML = `
-          <div class="error-box">
-            <strong>Generation Notice:</strong><br/>
-            ${escapeHtml(errorMsg)}
-          </div>
-        `;
-        regenBtn.disabled = false;
+        throw new Error('The AI returned an empty answer. Try regenerating.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const title = err instanceof BridgeError && err.code === 'NO_API_KEY' ? 'Setup needed' : 'Error';
+      const message = err instanceof Error ? err.message : 'Connection failed';
       contentArea.innerHTML = `
         <div class="error-box">
-          <strong>Error:</strong> ${escapeHtml(err?.message || 'Connection failed')}
+          <strong>${title}:</strong> ${escapeHtml(message)}
         </div>
       `;
       regenBtn.disabled = false;
@@ -478,9 +471,12 @@ export function initInlineAIHelper(getJobDetails: () => JobDetails | null): void
   // Initial scan
   scanAndAttach();
 
-  // Observe dynamically loaded textareas (common in Workday, Phenom, React SPAs)
-  const observer = new MutationObserver(() => {
-    scanAndAttach();
+  // Observe dynamically loaded textareas (common in Workday, Phenom, React SPAs), debounced.
+  let timer: number | undefined;
+  const observer = new MutationObserver((mutations) => {
+    if (!mutations.some((m) => m.addedNodes.length > 0)) return;
+    clearTimeout(timer);
+    timer = window.setTimeout(scanAndAttach, 300);
   });
 
   observer.observe(document.body, {

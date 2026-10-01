@@ -23,7 +23,7 @@ export const RecentApplicationsWidget: React.FC<RecentApplicationsWidgetProps> =
   };
 
   const isDue = (app: TrackedApplication) => {
-    if (app.status === 'REJECTED' || app.status === 'OFFER') return false;
+    if (app.status === 'ARCHIVED' || app.status === 'OFFER') return false;
     return Boolean(app.followUpDate && new Date(app.followUpDate) <= new Date());
   };
 
@@ -71,10 +71,10 @@ export const RecentApplicationsWidget: React.FC<RecentApplicationsWidgetProps> =
             >
               <div className="min-w-0 flex-1 mr-2">
                 <p className="font-semibold text-foreground truncate text-xs">
-                  {app.jobTitle}
+                  {app.title}
                 </p>
                 <p className="text-[10px] text-muted-foreground truncate">
-                  {app.company} • {formatDate(app.appliedAt)}
+                  {app.company} • {formatDate(app.appliedDate)}
                 </p>
               </div>
 

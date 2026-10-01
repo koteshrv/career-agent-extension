@@ -4,13 +4,12 @@ import {
   TrackedApplication,
   ExtensionView,
   ExtensionSettings,
-  SyncedProfileSummary,
   ApplicationStatus,
   CandidateProfile,
+  ATSType,
 } from '../../src/types';
 import {
   getSettings,
-  getSyncedProfile,
   getProfile,
   getApplications,
   addApplication,
@@ -21,6 +20,7 @@ import {
   DEFAULT_SETTINGS,
   DEFAULT_PROFILE,
 } from '../../src/lib/storage';
+import type { Msg, Res } from '../../src/lib/messages';
 import { Header } from '../../src/components/Header';
 import { JobDetectorCard } from '../../src/components/JobDetectorCard';
 import { ProfileSyncBar } from '../../src/components/ProfileSyncBar';
@@ -28,9 +28,8 @@ import { SettingsView } from '../../src/components/SettingsView';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ExtensionView>('main');
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [settings, setSettings] = useState<ExtensionSettings>(DEFAULT_SETTINGS);
-  const [syncedProfile, setSyncedProfile] = useState<SyncedProfileSummary | null>(null);
   const [profile, setProfile] = useState<CandidateProfile>(DEFAULT_PROFILE);
   const [applications, setApplications] = useState<TrackedApplication[]>([]);
   const [detectedJob, setDetectedJob] = useState<JobDetails | null>(null);
@@ -48,27 +47,20 @@ export const App: React.FC = () => {
 
   // Apply dark mode class to document
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
 
   // Load initial data
   useEffect(() => {
     async function loadData() {
-      const [storedSettings, storedSynced, storedProfile, storedApps, storedTheme] =
-        await Promise.all([
-          getSettings(),
-          getSyncedProfile(),
-          getProfile(),
-          getApplications(),
-          getTheme(),
-        ]);
+      const [storedSettings, storedProfile, storedApps, storedTheme] = await Promise.all([
+        getSettings(),
+        getProfile(),
+        getApplications(),
+        getTheme(),
+      ]);
 
       setSettings(storedSettings);
-      setSyncedProfile(storedSynced);
       setProfile(storedProfile);
       setApplications(storedApps);
       setTheme(storedTheme);
@@ -83,30 +75,23 @@ export const App: React.FC = () => {
     await saveTheme(nextTheme);
   };
 
-  // Safe message sender to active tab
-  const sendMessageToTab = useCallback(async (tabId: number, message: any): Promise<any> => {
+  // Send a typed message to the active tab's content script, injecting it on demand (activeTab) if absent.
+  const sendMessageToTab = useCallback(async <T,>(tabId: number, message: Msg): Promise<Res<T> | null> => {
     return new Promise((resolve) => {
-      chrome.tabs.sendMessage(tabId, message, async (response) => {
-        if (chrome.runtime?.lastError) {
-          try {
-            if (chrome.scripting) {
-              await chrome.scripting.executeScript({
-                target: { tabId },
-                files: ['content-scripts/content.js'],
-              });
-              setTimeout(() => {
-                chrome.tabs.sendMessage(tabId, message, (retryRes) => {
-                  resolve(chrome.runtime?.lastError ? null : retryRes);
-                });
-              }, 150);
-              return;
-            }
-          } catch {
-            // Handled
-          }
+      chrome.tabs.sendMessage(tabId, message, async (response: Res<T>) => {
+        if (!chrome.runtime?.lastError) return resolve(response ?? null);
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId },
+            files: ['content-scripts/content.js'],
+          });
+          setTimeout(() => {
+            chrome.tabs.sendMessage(tabId, message, (retryRes: Res<T>) => {
+              resolve(chrome.runtime?.lastError ? null : retryRes ?? null);
+            });
+          }, 150);
+        } catch {
           resolve(null);
-        } else {
-          resolve(response);
         }
       });
     });
@@ -133,9 +118,9 @@ export const App: React.FC = () => {
 
       setActiveTabId(tab.id);
 
-      const response = await sendMessageToTab(tab.id, { type: 'EXTRACT_JOB_DETAILS' });
+      const response = await sendMessageToTab<JobDetails | null>(tab.id, { type: 'EXTRACT_JOB_DETAILS' });
 
-      if (response && response.success && response.data) {
+      if (response?.ok && response.data) {
         setDetectedJob(response.data);
       } else {
         const url = tab.url || '';
@@ -147,7 +132,7 @@ export const App: React.FC = () => {
           url.includes('linkedin.com/jobs');
 
         if (isATS) {
-          let atsType: import('../../src/types').ATSType = 'generic';
+          let atsType: ATSType = 'generic';
           if (url.includes('boards.greenhouse.io') || url.includes('gh_jid')) atsType = 'greenhouse';
           else if (url.includes('jobs.lever.co')) atsType = 'lever';
           else if (url.includes('jobs.ashbyhq.com')) atsType = 'ashby';
@@ -181,24 +166,22 @@ export const App: React.FC = () => {
   // Handle Save to Tracker
   const handleSaveToTracker = async (job: JobDetails, status: ApplicationStatus = 'SAVED') => {
     await addApplication({
-      jobTitle: job.title,
+      title: job.title,
       company: job.company,
       location: job.location,
-      jobUrl: job.url,
-      atsType: job.atsType,
+      url: job.url,
+      atsProvider: job.atsType,
       status,
       followUpDays: settings.followUpDays,
     });
 
-    const updated = await getApplications();
-    setApplications(updated);
+    setApplications(await getApplications());
   };
 
   // Handle deleting a single application
   const handleDeleteApplication = async (id: string) => {
     await deleteApplication(id);
-    const updated = await getApplications();
-    setApplications(updated);
+    setApplications(await getApplications());
   };
 
   // Handle clearing all applications
@@ -215,14 +198,12 @@ export const App: React.FC = () => {
     setAutofillStatus({ message: null, type: 'idle' });
 
     try {
-      const activeProfile = syncedProfile?.profile || profile;
-
-      const response = await sendMessageToTab(activeTabId, {
+      const response = await sendMessageToTab<{ success: boolean; message?: string }>(activeTabId, {
         type: 'AUTOFILL_APPLICATION',
-        profile: activeProfile,
+        profile,
       });
 
-      if (response && response.success && response.data?.success) {
+      if (response?.ok && response.data?.success) {
         setAutofillStatus({
           message: response.data.message || 'Form autofilled successfully!',
           type: 'success',
@@ -234,7 +215,7 @@ export const App: React.FC = () => {
         }
       } else {
         const errorMsg =
-          response?.data?.message ||
+          (response?.ok ? response.data?.message : response?.message) ||
           'Could not find supported form inputs. Are you on the application form page?';
         setAutofillStatus({
           message: errorMsg,
@@ -255,11 +236,15 @@ export const App: React.FC = () => {
     detectedJob &&
       applications.some(
         (a) =>
-          (detectedJob.url && a.jobUrl === detectedJob.url) ||
+          (detectedJob.url && a.url === detectedJob.url) ||
           (a.company.toLowerCase() === detectedJob.company.toLowerCase() &&
-            a.jobTitle.toLowerCase() === detectedJob.title.toLowerCase())
+            a.title.toLowerCase() === detectedJob.title.toLowerCase())
       )
   );
+
+  // Kept for the (currently hidden) applications view.
+  void handleDeleteApplication;
+  void handleClearApplications;
 
   return (
     <div className="w-[380px] min-h-[480px] max-h-[580px] flex flex-col bg-background text-foreground font-sans select-none overflow-x-hidden">
@@ -299,7 +284,7 @@ export const App: React.FC = () => {
             {/* 2. AI Model Status & Web Links Bar */}
             <ProfileSyncBar
               settings={settings}
-              syncedProfile={syncedProfile}
+              profile={profile}
               onOpenSettings={() => setCurrentView('settings')}
             />
           </>

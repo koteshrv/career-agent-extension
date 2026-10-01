@@ -1,17 +1,17 @@
 import React from 'react';
-import { SyncedProfileSummary, ExtensionSettings } from '../types';
+import { CandidateProfile, ExtensionSettings } from '../types';
 import { openPlatformUrl } from '../lib/api';
 import { ExternalLink, Sparkles, UserCheck, KeyRound } from 'lucide-react';
 
 interface ProfileSyncBarProps {
   settings: ExtensionSettings;
-  syncedProfile: SyncedProfileSummary | null;
+  profile: CandidateProfile;
   onOpenSettings: () => void;
 }
 
 export const ProfileSyncBar: React.FC<ProfileSyncBarProps> = ({
   settings,
-  syncedProfile,
+  profile,
   onOpenSettings,
 }) => {
   const hasKey = Boolean(settings.aiApiKey.trim());
@@ -65,7 +65,7 @@ export const ProfileSyncBar: React.FC<ProfileSyncBarProps> = ({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-foreground truncate">
-                {syncedProfile?.name || 'Local Candidate Profile'}
+                {`${profile.firstName} ${profile.lastName}`.trim() || 'Local Candidate Profile'}
               </span>
               <span className="inline-flex items-center text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
                 <UserCheck className="w-3 h-3 mr-0.5" /> Ready

@@ -44,7 +44,7 @@ export const ApplicationBoard: React.FC<ApplicationBoardProps> = ({
 
   // Helper to check if follow-up is due or overdue
   const isFollowUpDue = (app: TrackedApplication) => {
-    if (app.status === 'REJECTED' || app.status === 'OFFER') return false;
+    if (app.status === 'ARCHIVED' || app.status === 'OFFER') return false;
     if (!app.followUpDate) return false;
     return new Date(app.followUpDate) <= now;
   };
@@ -67,7 +67,7 @@ export const ApplicationBoard: React.FC<ApplicationBoardProps> = ({
   // Filter & search
   const filteredApps = applications.filter((app) => {
     const matchesSearch =
-      app.jobTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.company.toLowerCase().includes(searchQuery.toLowerCase());
 
     if (!matchesSearch) return false;
@@ -82,7 +82,7 @@ export const ApplicationBoard: React.FC<ApplicationBoardProps> = ({
     APPLIED: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800',
     INTERVIEWING: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800',
     OFFER: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
-    REJECTED: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800',
+    ARCHIVED: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800',
   };
 
   const dueCount = applications.filter(isFollowUpDue).length;
@@ -187,7 +187,7 @@ export const ApplicationBoard: React.FC<ApplicationBoardProps> = ({
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-0.5 flex-1 min-w-0">
                     <h3 className="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">
-                      {app.jobTitle}
+                      {app.title}
                     </h3>
                     <div className="flex items-center gap-1.5 text-[11px] text-stone-600 dark:text-stone-400">
                       <Building className="w-3 h-3 text-stone-400 shrink-0" />
@@ -227,7 +227,7 @@ export const ApplicationBoard: React.FC<ApplicationBoardProps> = ({
                       <option value="APPLIED">Applied</option>
                       <option value="INTERVIEWING">Interviewing</option>
                       <option value="OFFER">Offer</option>
-                      <option value="REJECTED">Rejected</option>
+                      <option value="ARCHIVED">Archived</option>
                     </select>
 
                     {/* Follow-up Due Badge */}
@@ -241,13 +241,13 @@ export const ApplicationBoard: React.FC<ApplicationBoardProps> = ({
 
                   {/* Dates / Link */}
                   <div className="flex items-center gap-2 text-[10px] text-stone-400">
-                    <span title={`Applied on ${formatDate(app.appliedAt)}`}>
-                      {formatDate(app.appliedAt)}
+                    <span title={`Applied on ${formatDate(app.appliedDate)}`}>
+                      {formatDate(app.appliedDate)}
                     </span>
 
-                    {app.jobUrl && (
+                    {app.url && (
                       <a
-                        href={app.jobUrl}
+                        href={app.url}
                         target="_blank"
                         rel="noreferrer"
                         title="Open job link"

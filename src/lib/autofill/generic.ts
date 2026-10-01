@@ -298,7 +298,7 @@ export function autofillGeneric(
       checkMatchingRadio(doc, /no/i, 'sponsor');
     }
 
-    if (profile.workAuthorization === 'US_CITIZEN' || profile.workAuthorization === 'GREEN_CARD') {
+    if (['US_CITIZEN', 'GREEN_CARD', 'PERMANENT_RESIDENT'].includes(profile.workAuthorization)) {
       checkMatchingRadio(doc, /yes/i, 'authorize');
       checkMatchingRadio(doc, /yes/i, 'legally');
     }

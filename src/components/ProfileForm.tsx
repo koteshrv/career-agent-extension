@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { CandidateProfile, WorkAuthorizationStatus } from '../types';
 import { saveProfile } from '../lib/storage';
-import { syncProfileToServer } from '../lib/api';
 import {
   Save,
   CheckCircle2,
@@ -44,8 +43,6 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
     try {
       await saveProfile(formData);
       onProfileUpdated(formData);
-      // Attempt background cloud sync
-      syncProfileToServer(formData).catch(() => {});
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {

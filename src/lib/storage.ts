@@ -2,7 +2,6 @@ import {
   CandidateProfile,
   TrackedApplication,
   ExtensionSettings,
-  SyncedProfileSummary,
   ApplicationStatus,
 } from '../types';
 
@@ -30,6 +29,14 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   notificationsEnabled: true,
   followUpDays: 3,
 };
+
+const KEYS = {
+  settings: 'careeragent_settings',
+  profile: 'careeragent_profile',
+  applications: 'careeragent_applications',
+  theme: 'careeragent_theme',
+} as const;
+const LEGACY_SYNCED_PROFILE_KEY = 'careeragent_synced_profile';
 
 // Polyfill-safe storage getter
 function getStorageAPI(): chrome.storage.StorageArea | null {
@@ -88,7 +95,7 @@ async function setStorageItem<T>(key: string, value: T): Promise<void> {
 // Settings Storage
 // ==========================================
 export async function getSettings(): Promise<ExtensionSettings> {
-  const settings = await getStorageItem<ExtensionSettings>('careeragent_settings', DEFAULT_SETTINGS);
+  const settings = await getStorageItem<ExtensionSettings>(KEYS.settings, DEFAULT_SETTINGS);
   const resolved = { ...DEFAULT_SETTINGS, ...settings };
   if (
     resolved.aiProvider === 'gemini' &&
@@ -102,32 +109,19 @@ export async function getSettings(): Promise<ExtensionSettings> {
 }
 
 export async function saveSettings(settings: ExtensionSettings): Promise<void> {
-  await setStorageItem('careeragent_settings', settings);
+  await setStorageItem(KEYS.settings, settings);
 }
 
 // ==========================================
-// Synced Profile Summary Storage
-// ==========================================
-export async function getSyncedProfile(): Promise<SyncedProfileSummary | null> {
-  return await getStorageItem<SyncedProfileSummary | null>('careeragent_synced_profile', null);
-}
-
-export async function saveSyncedProfile(profile: SyncedProfileSummary | null): Promise<void> {
-  await setStorageItem('careeragent_synced_profile', profile);
-}
-
-// ==========================================
-// Candidate Profile Storage
+// Candidate Profile Storage (single source of truth; the web dashboard syncs through the bridge)
 // ==========================================
 export async function getProfile(): Promise<CandidateProfile> {
-  const synced = await getSyncedProfile();
-  if (synced?.profile) return synced.profile;
-  const profile = await getStorageItem<CandidateProfile>('careeragent_profile', DEFAULT_PROFILE);
+  const profile = await getStorageItem<CandidateProfile>(KEYS.profile, DEFAULT_PROFILE);
   return { ...DEFAULT_PROFILE, ...profile };
 }
 
 export async function saveProfile(profile: CandidateProfile): Promise<void> {
-  await setStorageItem('careeragent_profile', profile);
+  await setStorageItem(KEYS.profile, { ...profile, updatedAt: profile.updatedAt ?? new Date().toISOString() });
 }
 
 // ==========================================
@@ -140,81 +134,113 @@ export function calculateFollowUpDate(days: number = 3): string {
 }
 
 export async function getApplications(): Promise<TrackedApplication[]> {
-  return await getStorageItem<TrackedApplication[]>('careeragent_applications', []);
+  return await getStorageItem<TrackedApplication[]>(KEYS.applications, []);
 }
 
 export async function saveApplications(applications: TrackedApplication[]): Promise<void> {
-  await setStorageItem('careeragent_applications', applications);
+  await setStorageItem(KEYS.applications, applications);
+}
+
+const newId = () => `app_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+function sameJob(a: TrackedApplication, b: { url?: string; company: string; title: string }): boolean {
+  return (
+    (!!b.url && a.url === b.url) ||
+    (a.company.toLowerCase() === b.company.toLowerCase() && a.title.toLowerCase() === b.title.toLowerCase())
+  );
 }
 
 export async function addApplication(appData: {
-  jobTitle: string;
+  title: string;
   company: string;
-  location: string;
-  jobUrl: string;
-  atsType?: string;
+  location?: string;
+  url?: string;
+  atsProvider?: string;
   status?: ApplicationStatus;
   notes?: string;
   followUpDays?: number;
 }): Promise<TrackedApplication> {
   const apps = await getApplications();
   const now = new Date().toISOString();
-  const followUp = calculateFollowUpDate(appData.followUpDays ?? 3);
+  const existing = apps.find((a) => sameJob(a, appData));
 
-  const existingIndex = apps.findIndex(
-    (a) => (appData.jobUrl && a.jobUrl === appData.jobUrl) ||
-           (a.company.toLowerCase() === appData.company.toLowerCase() &&
-            a.jobTitle.toLowerCase() === appData.jobTitle.toLowerCase())
-  );
-
-  const newApp: TrackedApplication = {
-    id: existingIndex >= 0 ? apps[existingIndex].id : `app_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    jobTitle: appData.jobTitle || 'Untitled Role',
+  const app: TrackedApplication = {
+    id: existing?.id ?? newId(),
+    title: appData.title || 'Untitled Role',
     company: appData.company || 'Unknown Company',
     location: appData.location || 'Remote',
-    jobUrl: appData.jobUrl || '',
-    atsType: appData.atsType || 'generic',
+    url: appData.url || '',
+    atsProvider: appData.atsProvider || 'generic',
     status: appData.status || 'APPLIED',
-    appliedAt: existingIndex >= 0 ? apps[existingIndex].appliedAt : now,
-    followUpDate: followUp,
-    notes: appData.notes || '',
-    syncedWithServer: false,
+    appliedDate: existing?.appliedDate ?? now,
+    followUpDate: calculateFollowUpDate(appData.followUpDays ?? 3),
+    notes: appData.notes || existing?.notes || '',
+    updatedAt: now,
   };
 
-  if (existingIndex >= 0) {
-    apps[existingIndex] = { ...apps[existingIndex], ...newApp };
-  } else {
-    apps.unshift(newApp);
-  }
+  await upsertApplication(app);
+  return app;
+}
 
-  // Keep recent applications locally
-  await saveApplications(apps.slice(0, 20));
-  return newApp;
+/** Inserts or replaces by id. A record with a different id but the same job URL is replaced too, so both stores converge on one record. */
+export async function upsertApplication(app: TrackedApplication): Promise<void> {
+  const apps = await getApplications();
+  const idx = apps.findIndex((a) => a.id === app.id || (!!app.url && a.url === app.url));
+  if (idx >= 0) apps[idx] = app;
+  else apps.unshift(app);
+  await saveApplications(apps);
 }
 
 export async function updateApplicationStatus(id: string, status: ApplicationStatus): Promise<void> {
   const apps = await getApplications();
-  const updated = apps.map((app) => (app.id === id ? { ...app, status } : app));
-  await saveApplications(updated);
+  const now = new Date().toISOString();
+  await saveApplications(apps.map((app) => (app.id === id ? { ...app, status, updatedAt: now } : app)));
 }
 
 export async function deleteApplication(id: string): Promise<void> {
   const apps = await getApplications();
-  const filtered = apps.filter((app) => app.id !== id);
-  await saveApplications(filtered);
+  await saveApplications(apps.filter((app) => app.id !== id));
 }
 
 export async function clearApplications(): Promise<void> {
   await saveApplications([]);
 }
 
+/** One-time upgrade of records written by v1.0 (jobTitle/jobUrl/appliedAt/REJECTED) and removal of the fake "synced profile". */
+export async function migrateLegacyData(): Promise<void> {
+  const raw = await getStorageItem<any[]>(KEYS.applications, []);
+  if (raw.some((a) => a && typeof a === 'object' && 'jobTitle' in a)) {
+    const now = new Date().toISOString();
+    await saveApplications(
+      raw.map((a) =>
+        'jobTitle' in a
+          ? ({
+              id: a.id,
+              title: a.jobTitle,
+              company: a.company,
+              location: a.location,
+              url: a.jobUrl || '',
+              atsProvider: a.atsType,
+              status: a.status === 'REJECTED' ? 'ARCHIVED' : a.status,
+              appliedDate: a.appliedAt || now,
+              followUpDate: a.followUpDate,
+              notes: a.notes,
+              updatedAt: a.appliedAt || now,
+            } satisfies TrackedApplication)
+          : a
+      )
+    );
+  }
+  getStorageAPI()?.remove(LEGACY_SYNCED_PROFILE_KEY, () => void chrome.runtime?.lastError);
+}
+
 // ==========================================
 // Theme Storage
 // ==========================================
 export async function getTheme(): Promise<'light' | 'dark'> {
-  return await getStorageItem<'light' | 'dark'>('careeragent_theme', 'dark');
+  return await getStorageItem<'light' | 'dark'>(KEYS.theme, 'dark');
 }
 
 export async function saveTheme(theme: 'light' | 'dark'): Promise<void> {
-  await setStorageItem('careeragent_theme', theme);
+  await setStorageItem(KEYS.theme, theme);
 }
