@@ -1,6 +1,7 @@
 import React from 'react';
 import { ExtensionView, ExtensionSettings } from '../types';
-import { Orbit, Settings, ArrowLeft, Sun, Moon } from 'lucide-react';
+import { Settings, ArrowLeft, Sun, Moon } from 'lucide-react';
+import { Logo } from './Logo';
 
 interface HeaderProps {
   currentView: ExtensionView;
@@ -50,16 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Back</span>
           </button>
         ) : (
-          <div className="flex items-center gap-2">
-            <div className="text-primary hover:opacity-90 transition-opacity flex items-center shrink-0">
-              <Orbit className="h-5 w-5 stroke-[2.2]" />
-            </div>
-            <div className="flex items-center">
-              <span className="font-bold text-base tracking-tight text-foreground">
-                careeragent<span className="text-primary font-semibold">.fyi</span>
-              </span>
-            </div>
-          </div>
+          <Logo />
         )}
 
         {/* Right: AI Key Status & Settings */}

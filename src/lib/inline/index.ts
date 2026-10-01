@@ -2,13 +2,13 @@ import { setNativeValue } from '../autofill/helpers';
 import { JobDetails } from '../../types';
 import { request, BridgeError } from '../messages';
 
-const ORBIT_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block; flex-shrink:0;">
-  <circle cx="12" cy="12" r="3"/>
-  <circle cx="19" cy="5" r="2"/>
-  <circle cx="5" cy="19" r="2"/>
-  <path d="M10.4 21.9a10 10 0 0 0 9.94-8.4"/>
-  <path d="M13.6 2.1a10 10 0 0 0-9.94 8.4"/>
+const MARK_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="display:block; flex-shrink:0;">
+  <rect width="24" height="24" rx="6" fill="#0f1419"/>
+  <rect x="6" y="6.5" width="12" height="2.6" rx="1.3" fill="#f5f6f8"/>
+  <rect x="6" y="10.7" width="7" height="2.6" rx="1.3" fill="#f5f6f8"/>
+  <rect x="14.6" y="10.2" width="3.6" height="3.6" rx="1" fill="#39a7cb"/>
+  <rect x="6" y="14.9" width="12" height="2.6" rx="1.3" fill="#f5f6f8"/>
 </svg>
 `;
 
@@ -82,7 +82,7 @@ function attachOrbitToTextarea(textarea: HTMLTextAreaElement, getJobDetails: () 
     gap: 4px;
     padding: 3px 6px;
     background: #ffffff;
-    border: 1px solid #fed7aa;
+    border: 1px solid #c7ccd5;
     border-radius: 6px;
     cursor: pointer;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -90,21 +90,21 @@ function attachOrbitToTextarea(textarea: HTMLTextAreaElement, getJobDetails: () 
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-size: 11px;
     font-weight: 600;
-    color: #ea580c;
+    color: #0f1419;
   `;
   triggerBtn.innerHTML = `
-    ${ORBIT_SVG}
+    ${MARK_SVG}
     <span style="font-size: 10px; line-height: 1;">Draft with AI</span>
   `;
 
   triggerBtn.onmouseenter = () => {
-    triggerBtn.style.background = '#fff7ed';
-    triggerBtn.style.borderColor = '#ea580c';
+    triggerBtn.style.background = '#e3f1f6';
+    triggerBtn.style.borderColor = '#0c6e8c';
     triggerBtn.style.transform = 'translateY(-1px)';
   };
   triggerBtn.onmouseleave = () => {
     triggerBtn.style.background = '#ffffff';
-    triggerBtn.style.borderColor = '#fed7aa';
+    triggerBtn.style.borderColor = '#c7ccd5';
     triggerBtn.style.transform = 'translateY(0)';
   };
 
@@ -154,13 +154,13 @@ function openAIModal(
 
   const style = document.createElement('style');
   style.textContent = `
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Google Sans', 'Product Sans', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     .card {
       width: 500px;
       max-width: 92vw;
-      background: #16181D;
-      color: #F2F3F5;
-      border: 1px solid #25272D;
+      background: #161a20;
+      color: #e6e9ee;
+      border: 1px solid #262b33;
       border-radius: 14px;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
       overflow: hidden;
@@ -175,8 +175,8 @@ function openAIModal(
       align-items: center;
       justify-content: space-between;
       padding: 12px 16px;
-      border-bottom: 1px solid #25272D;
-      background: #121316;
+      border-bottom: 1px solid #262b33;
+      background: #0f1115;
     }
     .brand {
       display: flex;
@@ -184,22 +184,22 @@ function openAIModal(
       gap: 8px;
       font-size: 13px;
       font-weight: 700;
-      color: #F2F3F5;
+      color: #e6e9ee;
     }
-    .brand-highlight { color: #ea580c; font-weight: 600; }
+    .brand-highlight { color: #39a7cb; font-weight: 600; }
     .badge {
       font-size: 10px;
       padding: 2px 7px;
       border-radius: 6px;
-      background: #202228;
-      color: #8A8F98;
-      border: 1px solid #25272D;
+      background: #1c2128;
+      color: #8c94a1;
+      border: 1px solid #262b33;
       font-weight: 500;
     }
     .close-btn {
       background: transparent;
       border: 1px solid transparent;
-      color: #8A8F98;
+      color: #8c94a1;
       cursor: pointer;
       font-size: 14px;
       width: 26px;
@@ -210,7 +210,7 @@ function openAIModal(
       justify-content: center;
       transition: all 0.15s ease;
     }
-    .close-btn:hover { color: #F2F3F5; background: #202228; border-color: #25272D; }
+    .close-btn:hover { color: #e6e9ee; background: #1c2128; border-color: #262b33; }
     .body {
       padding: 16px;
       display: flex;
@@ -218,40 +218,40 @@ function openAIModal(
       gap: 12px;
     }
     .question-box {
-      background: #202228;
+      background: #1c2128;
       padding: 10px 12px;
       border-radius: 8px;
-      border: 1px solid #25272D;
-      border-left: 3px solid #ea580c;
+      border: 1px solid #262b33;
+      border-left: 3px solid #39a7cb;
     }
     .question-title {
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      color: #ea580c;
+      color: #5bbbd9;
       letter-spacing: 0.5px;
       margin-bottom: 2px;
     }
     .question-text {
       font-size: 12px;
       font-weight: 500;
-      color: #F2F3F5;
+      color: #e6e9ee;
       line-height: 1.4;
     }
     .textarea-preview {
       width: 100%;
       height: 140px;
-      background: #121316;
-      border: 1px solid #25272D;
+      background: #0f1115;
+      border: 1px solid #262b33;
       border-radius: 8px;
-      color: #F2F3F5;
+      color: #e6e9ee;
       padding: 10px 12px;
       font-size: 12px;
       line-height: 1.5;
       resize: vertical;
       outline: none;
     }
-    .textarea-preview:focus { border-color: #ea580c; }
+    .textarea-preview:focus { border-color: #39a7cb; }
     .loading-state {
       height: 140px;
       display: flex;
@@ -259,17 +259,17 @@ function openAIModal(
       align-items: center;
       justify-content: center;
       gap: 8px;
-      background: #121316;
-      border: 1px dashed #25272D;
+      background: #0f1115;
+      border: 1px dashed #262b33;
       border-radius: 8px;
-      color: #8A8F98;
+      color: #8c94a1;
       font-size: 12px;
     }
     .spinner {
       width: 20px;
       height: 20px;
-      border: 2px solid #202228;
-      border-top-color: #ea580c;
+      border: 2px solid #1c2128;
+      border-top-color: #39a7cb;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
@@ -288,12 +288,12 @@ function openAIModal(
       align-items: center;
       justify-content: space-between;
       padding: 12px 16px;
-      border-top: 1px solid #25272D;
-      background: #121316;
+      border-top: 1px solid #262b33;
+      background: #0f1115;
     }
     .token-notice {
       font-size: 10px;
-      color: #8A8F98;
+      color: #8c94a1;
     }
     .actions {
       display: flex;
@@ -310,17 +310,17 @@ function openAIModal(
       transition: all 0.15s ease;
     }
     .btn-secondary {
-      background: #202228;
-      border: 1px solid #25272D;
-      color: #F2F3F5;
+      background: #1c2128;
+      border: 1px solid #262b33;
+      color: #e6e9ee;
     }
-    .btn-secondary:hover { background: #25272D; }
+    .btn-secondary:hover { background: #262b33; }
     .btn-primary {
-      background: #ea580c;
-      color: #ffffff;
+      background: #39a7cb;
+      color: #0b1116;
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
-    .btn-primary:hover { background: #f97316; }
+    .btn-primary:hover { background: #5bbbd9; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   `;
 
@@ -331,8 +331,8 @@ function openAIModal(
   card.innerHTML = `
     <div class="header">
       <div class="brand">
-        ${ORBIT_SVG}
-        <span>careeragent<span class="brand-highlight">.fyi</span></span>
+        ${MARK_SVG}
+        <span>CareerAgent</span>
         <span class="badge">AI Assistant</span>
       </div>
       <button class="close-btn" id="ca-close">✕</button>

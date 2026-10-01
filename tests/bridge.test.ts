@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
 
 import { isAllowedOrigin, sanitizeApplication, sanitizeProfile, handleExternal } from '../src/lib/bridge';
-import { parseFilters } from '../src/lib/ai';
+import { parseFilters, parseResumeJson } from '../src/lib/ai';
 
 describe('External bridge', () => {
   it('only accepts origins matching the manifest patterns', () => {
@@ -71,6 +71,26 @@ describe('Resume filter parsing', () => {
   it('throws instead of inventing defaults', () => {
     assert.throws(() => parseFilters('Sorry, I cannot help with that.'), /JSON/);
     assert.throws(() => parseFilters('{"foo": "bar"}'), /roles or keywords/);
+  });
+
+  it('parses a full profile and gives list entries ids', () => {
+    const raw = JSON.stringify({
+      profile: {
+        firstName: 'Sarah', lastName: 'Connor', email: 's@example.com', skills: ['Go', 'Rust'],
+        experiences: [{ company: 'Cyberdyne', role: 'Engineer', startDate: '2021-03', current: true, description: 'Built things' }, { company: '' }],
+        education: [{ institution: 'MIT', degree: 'BS', fieldOfStudy: 'CS', graduationYear: '2015' }],
+        workAuthorization: 'MARTIAN',
+      },
+      filters: { roles: 'SRE', keywords: 'Go', excludes: 'Intern', location: 'Remote' },
+    });
+    const r = parseResumeJson(raw);
+    assert.strictEqual(r.profile.firstName, 'Sarah');
+    assert.strictEqual(r.profile.experiences!.length, 1);
+    assert.ok(r.profile.experiences![0].id.startsWith('exp_'));
+    assert.strictEqual(r.profile.education![0].institution, 'MIT');
+    assert.strictEqual(r.profile.workAuthorization, 'OTHER');
+    assert.strictEqual(r.filters.roles, 'SRE');
+    assert.throws(() => parseResumeJson('{"filters": {"roles": "x"}}'), /profile object/);
   });
 });
 

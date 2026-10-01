@@ -1,74 +1,63 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@300;400;500;600;700&display=swap');
+@import '@fontsource-variable/plus-jakarta-sans';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   color-scheme: light;
-  --background: 240 5% 96%;
-  --foreground: 30 20% 12%;
-  --card: 40 20% 100%;
-  --card-foreground: 30 20% 12%;
-  --popover: 40 20% 100%;
-  --popover-foreground: 30 20% 12%;
-  --primary: 26 73% 51%;
+  --background: 220 18% 97%;
+  --foreground: 210 25% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 210 25% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 210 25% 8%;
+  --primary: 194 84% 30%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 240 5% 92%;
-  --secondary-foreground: 30 20% 18%;
-  --muted: 40 10% 92%;
-  --muted-foreground: 30 10% 45%;
-  --accent: 40 10% 89%;
-  --accent-foreground: 30 20% 18%;
-  --destructive: 6 70% 45%;
-  --destructive-foreground: 40 20% 98%;
-  --border: 40 10% 93%;
-  --input: 40 10% 93%;
-  --ring: 26 73% 51%;
-  --radius: 0.5rem;
+  --secondary: 216 20% 95%;
+  --secondary-foreground: 210 25% 8%;
+  --muted: 216 20% 95%;
+  --muted-foreground: 217 11% 40%;
+  --accent: 196 51% 93%;
+  --accent-foreground: 194 84% 30%;
+  --destructive: 4 76% 40%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 218 17% 91%;
+  --input: 219 14% 81%;
+  --ring: 194 84% 30%;
+  --radius: 0.625rem;
 
-  --status-new: 217 91% 55%;
-  --status-applied: 32 85% 50%;
-  --status-interviewing: 142 71% 40%;
-  --status-rejected: 6 70% 45%;
+  --status-new: 194 84% 30%;
+  --status-applied: 194 84% 30%;
+  --status-interviewing: 142 72% 29%;
+  --status-rejected: 4 76% 40%;
 }
 
 .dark {
   color-scheme: dark;
-  /* Linear-style Deep Cool Dark Mode */
-  --background: 220 10% 8%;      /* #121316 */
-  --foreground: 220 10% 92%;     /* #F2F3F5 */
-  
-  --card: 220 10% 10%;           /* #16181D */
-  --card-foreground: 220 10% 92%;
-  
-  --popover: 220 10% 11%;        
-  --popover-foreground: 220 10% 92%;
-  
-  --primary: 26 73% 51%;         /* Keeping the vibrant CareerAgent orange */
-  --primary-foreground: 0 0% 100%;
-  
-  --secondary: 220 10% 14%;      /* #202228 */
-  --secondary-foreground: 220 10% 92%;
-  
-  --muted: 220 10% 14%;
-  --muted-foreground: 220 10% 55%; /* #8A8F98 */
-  
-  --accent: 220 10% 16%;
-  --accent-foreground: 220 10% 92%;
-  
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
-  
-  /* High contrast, hairline borders */
-  --border: 220 10% 16%;         /* #25272D */
-  --input: 220 10% 16%;
-  --ring: 26 73% 51%;
+  --background: 220 17% 7%;
+  --foreground: 218 19% 92%;
+  --card: 216 19% 11%;
+  --card-foreground: 218 19% 92%;
+  --popover: 216 19% 11%;
+  --popover-foreground: 218 19% 92%;
+  --primary: 195 58% 51%;
+  --primary-foreground: 210 33% 7%;
+  --secondary: 215 18% 13%;
+  --secondary-foreground: 218 19% 92%;
+  --muted: 215 18% 13%;
+  --muted-foreground: 217 10% 59%;
+  --accent: 196 48% 14%;
+  --accent-foreground: 195 58% 51%;
+  --destructive: 4 92% 69%;
+  --destructive-foreground: 210 33% 7%;
+  --border: 217 15% 17%;
+  --input: 215 14% 25%;
+  --ring: 195 58% 51%;
 
-  --status-new: 217 91% 55%;
-  --status-applied: 32 85% 50%;
-  --status-interviewing: 142 71% 40%;
-  --status-rejected: 0 84% 60%;
+  --status-new: 195 58% 51%;
+  --status-applied: 195 58% 51%;
+  --status-interviewing: 151 50% 53%;
+  --status-rejected: 4 92% 69%;
 }
 
 *, ::before, ::after {
@@ -81,7 +70,7 @@ html, body {
   min-height: 480px;
   margin: 0;
   padding: 0;
-  font-family: 'Google Sans', 'Product Sans', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Plus Jakarta Sans Variable', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
   -webkit-font-smoothing: antialiased;

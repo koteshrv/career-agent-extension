@@ -8,7 +8,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Google Sans', 'Product Sans', 'Plus Jakarta Sans', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['Plus Jakarta Sans Variable', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background) / <alpha-value>)',
@@ -51,17 +51,17 @@ export default {
           rejected: 'hsl(var(--status-rejected) / <alpha-value>)',
         },
         brand: {
-          50: '#fff7ed',
-          100: '#ffedd5',
-          200: '#fed7aa',
-          300: '#fdba74',
-          400: '#fb923c',
-          500: '#f97316',
-          600: '#ea580c',
-          700: '#c2410c',
-          800: '#9a3412',
-          900: '#7c2d12',
-          DEFAULT: '#ea580c',
+          50: '#e3f1f6',
+          100: '#c7e3ed',
+          200: '#9ccbdb',
+          300: '#6fb3c9',
+          400: '#4a9ab5',
+          500: '#2b86a3',
+          600: '#0c6e8c',
+          700: '#0a5a73',
+          800: '#08475b',
+          900: '#063644',
+          DEFAULT: '#0c6e8c',
         },
       },
       borderRadius: {
