@@ -9,6 +9,8 @@ import {
   upsertApplication,
   deleteApplication,
   getSettings,
+  saveResume,
+  getResume,
 } from './storage';
 import { parseResume } from './ai';
 import { sanitizeProfile, sanitizeApplication, str } from './sanitize';
@@ -25,7 +27,9 @@ export type ExternalRequest =
   | { action: 'upsert_application'; payload: unknown }
   | { action: 'delete_application'; payload: { id?: unknown } }
   | { action: 'parse_resume_for_filters'; payload: { fileName?: unknown; fileData?: unknown } }
-  | { action: 'parse_resume'; payload: { fileName?: unknown; fileData?: unknown } };
+  | { action: 'parse_resume'; payload: { fileName?: unknown; fileData?: unknown } }
+  | { action: 'save_resume'; payload: { name?: unknown; type?: unknown; data?: unknown } }
+  | { action: 'get_resume_meta' };
 
 const FALLBACK_PATTERNS = ['https://careeragent.fyi/*', 'https://*.careeragent.fyi/*'];
 
@@ -80,6 +84,19 @@ export async function handleExternal(msg: ExternalRequest): Promise<unknown> {
       };
     case 'get_state':
       return { profile: await getProfile(), applications: await getApplications() };
+    case 'get_resume_meta': {
+      const r = await getResume();
+      return r ? { name: r.name, size: r.size, updatedAt: r.updatedAt } : null;
+    }
+    case 'save_resume': {
+      const name = str(msg.payload?.name, 256) || 'resume.pdf';
+      const data = msg.payload?.data;
+      if (typeof data !== 'string' || !data || data.length > MAX_PDF_B64 || !/^[A-Za-z0-9+/=\s]+$/.test(data.slice(0, 2048))) {
+        throw new BridgeError('BAD_PAYLOAD', 'data must be a base64 PDF under 5 MB');
+      }
+      await saveResume({ name, type: 'application/pdf', size: Math.floor((data.length * 3) / 4), data, updatedAt: new Date().toISOString() });
+      return { saved: true };
+    }
     case 'save_profile':
       await saveProfile(sanitizeProfile(msg.payload));
       return { saved: true };

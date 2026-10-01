@@ -119,8 +119,34 @@ export interface ExtensionSettings {
   aiApiKey: string;
   aiModel: string;
   autoTrackOnAutofill: boolean;
+  /** Add the job to the pipeline as Applied when an application form is submitted on a known ATS. */
+  autoTrackOnSubmit: boolean;
   notificationsEnabled: boolean;
   followUpDays: number;
+}
+
+/** An answer the user approved once; offered again when the same question appears. */
+export interface SavedAnswer {
+  question: string;
+  answer: string;
+  updatedAt: string;
+}
+
+/** The resume file the extension attaches to file inputs during autofill. */
+export interface StoredResume {
+  name: string;
+  type: string;
+  size: number;
+  data: string; // base64
+  updatedAt: string;
+}
+
+export interface CompanySignal {
+  company_slug: string;
+  total_applications: number;
+  interview_rate: number;
+  ghost_score: number;
+  median_response_days: number | null;
 }
 
 export interface ResumeFilters {
@@ -130,4 +156,4 @@ export interface ResumeFilters {
   location: string;
 }
 
-export type ExtensionView = 'main' | 'settings' | 'detect' | 'applications' | 'profile';
+export type ExtensionView = 'job' | 'pipeline' | 'profile' | 'settings';

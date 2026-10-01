@@ -76,6 +76,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     });
   };
 
+  const handleToggleAutoSubmit = async (checked: boolean) => {
+    const updated = { ...formData, autoTrackOnSubmit: checked };
+    setFormData(updated);
+    await saveSettings(updated);
+    onSettingsSaved(updated);
+    setFeedback({ type: 'success', message: checked ? 'Submitted applications will be added to your pipeline.' : 'Submitted applications are no longer tracked automatically.' });
+  };
+
   const handleToggleNotifications = async (checked: boolean) => {
     const updated = { ...formData, notificationsEnabled: checked };
     setFormData(updated);
@@ -207,10 +215,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <div className="pb-1">
         <h2 className="text-sm font-bold text-foreground flex items-center gap-1.5">
           <Sparkles className="w-4 h-4 text-primary" />
-          <span>AI Assistant & Settings</span>
+          <span>AI and tracking</span>
         </h2>
         <p className="text-[11px] text-muted-foreground mt-0.5">
-          Connect your free Gemini or OpenAI key for inline question answering.
+          Your key stays in this browser. It is only used to draft answers to application questions and read your resume.
         </p>
       </div>
 
@@ -232,7 +240,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       )}
 
       {/* Main Settings Form */}
-      <form onSubmit={handleTestAndSave} className="space-y-3.5 p-3.5 rounded-xl border border-border/80 bg-card shadow-2xs">
+      <form onSubmit={handleTestAndSave} className="space-y-3.5 p-3.5 rounded-lg border border-border bg-card">
         {/* 1. AI Provider Selection */}
         <div>
           <label className="block text-xs font-semibold text-foreground mb-1.5">
@@ -244,7 +252,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 key={p}
                 type="button"
                 onClick={() => handleProviderChange(p)}
-                className={`py-1.5 px-2.5 rounded-lg text-xs font-medium border text-left transition-all cursor-pointer shadow-2xs select-none ${
+                className={`py-1.5 px-2.5 rounded-lg text-xs font-medium border text-left transition-all cursor-pointer  select-none ${
                   formData.aiProvider === p
                     ? 'border-primary/50 bg-primary/10 text-primary font-semibold ring-1 ring-primary/40'
                     : 'border-border/80 bg-secondary hover:bg-secondary/80 text-foreground'
@@ -269,7 +277,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 onClick={handleDetectModels}
                 disabled={isDetectingModels || !formData.aiApiKey.trim()}
                 title="Detect models available for your API key"
-                className="h-5 px-1.5 rounded border border-border/60 bg-secondary hover:bg-secondary/80 inline-flex items-center gap-1 text-[10px] font-semibold text-primary transition-all disabled:opacity-40 cursor-pointer select-none"
+                className="h-5 px-1.5 rounded border border-border/60 bg-secondary hover:bg-secondary/80 inline-flex items-center gap-1 text-[11px] font-semibold text-primary transition-all disabled:opacity-40 cursor-pointer select-none"
               >
                 <RefreshCw className={`w-2.5 h-2.5 ${isDetectingModels ? 'animate-spin' : ''}`} />
                 <span>{isDetectingModels ? 'Detecting...' : 'Detect'}</span>
@@ -280,7 +288,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <select
             value={formData.aiModel}
             onChange={(e) => setFormData({ ...formData, aiModel: e.target.value })}
-            className="w-full px-2.5 py-1.5 rounded-lg text-xs border border-border/80 bg-background text-foreground shadow-2xs focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary cursor-pointer"
+            className="w-full px-2.5 py-1.5 rounded-lg text-xs border border-border/80 bg-background text-foreground  focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary cursor-pointer"
           >
             {availableModels.map((m) => (
               <option key={m.id} value={m.id}>
@@ -289,7 +297,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             ))}
           </select>
 
-          <p className="text-[10px] text-muted-foreground pt-1">
+          <p className="text-[11px] text-muted-foreground pt-1">
             {availableModels.find((m) => m.id === formData.aiModel)?.description || ''}
           </p>
         </div>
@@ -306,7 +314,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 href={keyLink.url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-primary hover:underline cursor-pointer"
+                className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
               >
                 <span>Get Key</span>
                 <ExternalLink className="w-2.5 h-2.5" />
@@ -326,7 +334,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   ? 'sk-...'
                   : 'sk-ant-...'
               }
-              className="w-full pl-3 pr-8 py-2 rounded-lg text-xs font-mono border border-border/80 bg-background text-foreground shadow-2xs focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary"
+              className="w-full pl-3 pr-8 py-2 rounded-lg text-xs font-mono border border-border/80 bg-background text-foreground  focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary"
             />
             <button
               type="button"
@@ -336,8 +344,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             </button>
           </div>
-          <p className="text-[10px] text-muted-foreground pt-1 leading-tight">
-            Stored 100% locally on your machine. Never sent to any CareerAgent server.
+          <p className="text-[11px] text-muted-foreground pt-1 leading-tight">
+            Stored only in this browser. Never sent to a CareerAgent server.
           </p>
         </div>
 
@@ -346,10 +354,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-foreground">
-                Auto-log on 1-click autofill
+                Add to pipeline when I submit an application
               </p>
-              <p className="text-[10px] text-muted-foreground">
-                Immediately records job to your tracker upon autofill.
+              <p className="text-[11px] text-muted-foreground">
+                On Greenhouse, Lever, Ashby and Workday the submit is detected and the job is marked Applied.
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={formData.autoTrackOnSubmit}
+              onChange={(e) => handleToggleAutoSubmit(e.target.checked)}
+              className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer accent-primary"
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-foreground">
+                Mark Applied when I autofill
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Treats a successful autofill as an application.
               </p>
             </div>
             <input
@@ -365,7 +390,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <p className="text-xs font-medium text-foreground">
                 Follow-up badge reminder (3 days)
               </p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 Shows notification count when follow-up is due.
               </p>
             </div>
@@ -378,12 +403,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
 
+        <p className="text-[11px] text-muted-foreground">
+          Keyboard: Alt+Shift+F autofills the current page. Change it at chrome://extensions/shortcuts.
+        </p>
+
         {/* Action Buttons */}
         <div className="pt-2 border-t border-border/60 flex items-center justify-between">
           <button
             type="button"
             onClick={onBack}
-            className="h-8 px-3 rounded-lg text-xs font-medium border border-border/60 bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer select-none shadow-2xs"
+            className="h-8 px-3 rounded-lg text-xs font-medium border border-border/60 bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer select-none "
           >
             Back
           </button>
@@ -393,7 +422,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               type="button"
               onClick={handleDirectSave}
               disabled={isSaving || isTesting}
-              className="h-8 px-3 rounded-lg text-xs font-medium border border-border/80 bg-card hover:bg-muted/50 text-foreground transition-all disabled:opacity-50 cursor-pointer select-none shadow-2xs"
+              className="h-8 px-3 rounded-lg text-xs font-medium border border-border/80 bg-card hover:bg-muted/50 text-foreground transition-all disabled:opacity-50 cursor-pointer select-none "
             >
               {isSaving ? 'Saving...' : 'Save'}
             </button>
@@ -401,7 +430,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <button
               type="submit"
               disabled={isTesting || isSaving}
-              className="h-8 flex items-center gap-1.5 px-3.5 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs transition-all disabled:opacity-50 cursor-pointer select-none"
+              className="h-8 flex items-center gap-1.5 px-3.5 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground  transition-all disabled:opacity-50 cursor-pointer select-none"
             >
               <Save className="w-3.5 h-3.5" />
               <span>{isTesting ? 'Verifying...' : 'Verify & Save'}</span>

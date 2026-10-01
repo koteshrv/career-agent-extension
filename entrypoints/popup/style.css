@@ -1,4 +1,4 @@
-@import '@fontsource-variable/plus-jakarta-sans';
+@import '@fontsource-variable/inter';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -67,10 +67,11 @@
 
 html, body {
   width: 380px;
-  min-height: 480px;
+  height: 560px;
+  overflow: hidden;
   margin: 0;
   padding: 0;
-  font-family: 'Plus Jakarta Sans Variable', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter Variable', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
   -webkit-font-smoothing: antialiased;

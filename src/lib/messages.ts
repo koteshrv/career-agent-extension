@@ -1,11 +1,19 @@
-import type { CandidateProfile, JobDetails } from '../types';
+import type { CandidateProfile, JobDetails, SavedAnswer, StoredResume, CompanySignal } from '../types';
 
 /** Every message exchanged between popup, content scripts and the background worker. */
 export type Msg =
   | { type: 'PING' }
   | { type: 'EXTRACT_JOB_DETAILS' }
-  | { type: 'AUTOFILL_APPLICATION'; profile: CandidateProfile }
-  | { type: 'GENERATE_AI_ANSWER'; question: string; job: JobDetails };
+  | { type: 'AUTOFILL_APPLICATION'; profile: CandidateProfile; answers?: Record<string, SavedAnswer>; resume?: StoredResume | null }
+  | { type: 'MATCH_SKILLS'; skills: string[] }
+  | { type: 'GENERATE_AI_ANSWER'; question: string; job: JobDetails }
+  | { type: 'GET_SAVED_ANSWER'; question: string }
+  | { type: 'SAVE_ANSWER'; question: string; answer: string }
+  | { type: 'APPLICATION_SUBMITTED'; job: JobDetails }
+  | { type: 'COMPANY_SIGNAL'; company: string }
+  | { type: 'RUN_AUTOFILL_ON_ACTIVE_TAB' };
+
+export type CompanySignalResult = CompanySignal | null;
 
 export type ErrCode =
   | 'NO_API_KEY'
@@ -71,5 +79,25 @@ export function request<T>(msg: Msg, timeoutMs = 15_000): Promise<T> {
       if (res?.ok) resolve(res.data);
       else reject(new BridgeError(res?.code ?? 'UNKNOWN_ACTION', res?.message ?? 'Unknown error'));
     });
+  });
+}
+
+/** Sends a message to a tab's content script, injecting it first if the page has none (activeTab). */
+export function requestTab<T>(tabId: number, msg: Msg): Promise<Res<T> | null> {
+  const send = () =>
+    new Promise<Res<T> | null>((resolve) => {
+      chrome.tabs.sendMessage(tabId, msg, (res: Res<T>) => {
+        resolve(chrome.runtime.lastError ? null : res ?? null);
+      });
+    });
+  return send().then(async (res) => {
+    if (res) return res;
+    try {
+      await chrome.scripting.executeScript({ target: { tabId }, files: ['content-scripts/content.js'] });
+      await new Promise((r) => setTimeout(r, 150));
+      return await send();
+    } catch {
+      return null;
+    }
   });
 }

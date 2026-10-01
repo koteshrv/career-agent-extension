@@ -1,6 +1,8 @@
 import { setNativeValue } from '../autofill/helpers';
 import { JobDetails } from '../../types';
 import { request, BridgeError } from '../messages';
+import { detectQuestionText } from '../autofill/questions';
+import type { SavedAnswer } from '../../types';
 
 const MARK_SVG = `
 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="display:block; flex-shrink:0;">
@@ -11,47 +13,6 @@ const MARK_SVG = `
   <rect x="6" y="14.9" width="12" height="2.6" rx="1.3" fill="#f5f6f8"/>
 </svg>
 `;
-
-/**
- * Detects the question prompt associated with a textarea
- */
-function detectQuestionText(textarea: HTMLTextAreaElement): string {
-  // 1. Associated <label for="...">
-  if (textarea.id) {
-    const label = document.querySelector(`label[for="${textarea.id}"]`);
-    if (label?.textContent?.trim()) {
-      return label.textContent.trim().replace(/\s+/g, ' ');
-    }
-  }
-
-  // 2. Parent or closest label
-  const parentLabel = textarea.closest('label');
-  if (parentLabel?.textContent?.trim()) {
-    return parentLabel.textContent.trim().replace(/\s+/g, ' ');
-  }
-
-  // 3. Preceding heading, paragraph, or container label
-  const container = textarea.closest('div, section, fieldset, tr, td');
-  if (container) {
-    const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6, legend, label, p, strong');
-    for (const h of Array.from(headings)) {
-      const text = h.textContent?.trim() || '';
-      if (text.length > 5 && text.length < 200 && !text.toLowerCase().includes('characters remaining')) {
-        return text.replace(/\s+/g, ' ');
-      }
-    }
-  }
-
-  // 4. Placeholder or aria-label fallback
-  if (textarea.placeholder && textarea.placeholder.length > 5) {
-    return textarea.placeholder.trim();
-  }
-  if (textarea.getAttribute('aria-label')) {
-    return textarea.getAttribute('aria-label')!.trim();
-  }
-
-  return 'Job Application Question';
-}
 
 /**
  * Injects the CareerAgent inline AI Orbit logo into an individual textarea
@@ -115,7 +76,7 @@ function attachOrbitToTextarea(textarea: HTMLTextAreaElement, getJobDetails: () 
     e.preventDefault();
     e.stopPropagation();
 
-    const question = detectQuestionText(textarea);
+    const question = detectQuestionText(textarea) || 'Job Application Question';
     const job = getJobDetails();
 
     openAIModal(textarea, question, job);
@@ -154,7 +115,7 @@ function openAIModal(
 
   const style = document.createElement('style');
   style.textContent = `
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     .card {
       width: 500px;
       max-width: 92vw;
@@ -353,7 +314,7 @@ function openAIModal(
     </div>
 
     <div class="footer">
-      <div class="token-notice">Tokens used only on demand</div>
+      <div class="token-notice">Inserted answers are remembered for this question</div>
       <div class="actions">
         <button class="btn btn-secondary" id="ca-regen" disabled>Regenerate</button>
         <button class="btn btn-primary" id="ca-insert" disabled>Insert into Field</button>
@@ -377,7 +338,21 @@ function openAIModal(
 
   let currentDraft = '';
 
-  const runGeneration = async () => {
+  const showDraft = (text: string, note?: string) => {
+    currentDraft = text;
+    contentArea.innerHTML = `
+      ${note ? `<div class="token-notice" style="margin-bottom:6px">${escapeHtml(note)}</div>` : ''}
+      <textarea class="textarea-preview" id="ca-result-text">${escapeHtml(text)}</textarea>
+    `;
+    const textareaEl = shadow.getElementById('ca-result-text') as HTMLTextAreaElement;
+    textareaEl?.addEventListener('input', () => {
+      currentDraft = textareaEl.value;
+    });
+    insertBtn.disabled = false;
+    regenBtn.disabled = false;
+  };
+
+  const runGeneration = async (force = false) => {
     contentArea.innerHTML = `
       <div class="loading-state">
         <div class="spinner"></div>
@@ -386,6 +361,19 @@ function openAIModal(
     `;
     insertBtn.disabled = true;
     regenBtn.disabled = true;
+
+    if (!force) {
+      try {
+        const saved = await request<SavedAnswer | null>({ type: 'GET_SAVED_ANSWER', question }, 3000);
+        if (saved?.answer) {
+          showDraft(saved.answer, `Saved answer from ${new Date(saved.updatedAt).toLocaleDateString()}. Edit it, or generate a fresh one.`);
+          regenBtn.textContent = 'Generate with AI';
+          return;
+        }
+      } catch {
+        // no saved answer, fall through to AI
+      }
+    }
 
     try {
       const { answer } = await request<{ answer: string }>(
@@ -404,18 +392,8 @@ function openAIModal(
       );
 
       if (answer) {
-        currentDraft = answer;
-        contentArea.innerHTML = `
-          <textarea class="textarea-preview" id="ca-result-text">${escapeHtml(currentDraft)}</textarea>
-        `;
-
-        const textareaEl = shadow.getElementById('ca-result-text') as HTMLTextAreaElement;
-        textareaEl?.addEventListener('input', () => {
-          currentDraft = textareaEl.value;
-        });
-
-        insertBtn.disabled = false;
-        regenBtn.disabled = false;
+        showDraft(answer);
+        regenBtn.textContent = 'Regenerate';
       } else {
         throw new Error('The AI returned an empty answer. Try regenerating.');
       }
@@ -431,16 +409,17 @@ function openAIModal(
     }
   };
 
-  // Insert button
+  // Insert button: the approved text is remembered for the next time this question appears.
   insertBtn.addEventListener('click', () => {
     if (currentDraft) {
       setNativeValue(textarea, currentDraft);
+      request({ type: 'SAVE_ANSWER', question, answer: currentDraft }, 3000).catch(() => {});
       closeModal();
     }
   });
 
   // Regenerate button
-  regenBtn.addEventListener('click', runGeneration);
+  regenBtn.addEventListener('click', () => runGeneration(true));
 
   // Run initial draft
   runGeneration();

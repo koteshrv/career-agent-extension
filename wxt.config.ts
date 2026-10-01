@@ -25,6 +25,12 @@ export default defineConfig({
       `${API_HOST}/*`,
       ...AI_HOSTS.map((h) => `${h}/*`),
     ],
+    commands: {
+      autofill: {
+        suggested_key: { default: 'Alt+Shift+F' },
+        description: 'Autofill the application form on this page',
+      },
+    },
     icons: {
       16: 'icon-16.png',
       48: 'icon-48.png',

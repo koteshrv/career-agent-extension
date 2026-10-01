@@ -3,7 +3,11 @@ import {
   TrackedApplication,
   ExtensionSettings,
   ApplicationStatus,
+  SavedAnswer,
+  StoredResume,
 } from '../types';
+import { normalizeQuestion } from './answers';
+export { normalizeQuestion, findSavedAnswer } from './answers';
 
 export const DEFAULT_PROFILE: CandidateProfile = {
   firstName: '',
@@ -26,6 +30,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   aiApiKey: '',
   aiModel: 'gemini-3.5-flash-lite',
   autoTrackOnAutofill: false,
+  autoTrackOnSubmit: true,
   notificationsEnabled: true,
   followUpDays: 3,
 };
@@ -35,6 +40,8 @@ const KEYS = {
   profile: 'careeragent_profile',
   applications: 'careeragent_applications',
   theme: 'careeragent_theme',
+  answers: 'careeragent_answers',
+  resume: 'careeragent_resume',
 } as const;
 const LEGACY_SYNCED_PROFILE_KEY = 'careeragent_synced_profile';
 
@@ -232,6 +239,40 @@ export async function migrateLegacyData(): Promise<void> {
     );
   }
   getStorageAPI()?.remove(LEGACY_SYNCED_PROFILE_KEY, () => void chrome.runtime?.lastError);
+}
+
+// ==========================================
+// Saved answers (question → approved answer)
+// ==========================================
+export async function getAnswers(): Promise<Record<string, SavedAnswer>> {
+  return await getStorageItem<Record<string, SavedAnswer>>(KEYS.answers, {});
+}
+
+export async function saveAnswer(question: string, answer: string): Promise<void> {
+  const key = normalizeQuestion(question);
+  if (!key || !answer.trim()) return;
+  const all = await getAnswers();
+  all[key] = { question: question.trim().slice(0, 300), answer: answer.trim().slice(0, 5000), updatedAt: new Date().toISOString() };
+  // ponytail: cap at 200 answers, oldest dropped; a UI to manage them can come later
+  const entries = Object.entries(all).sort((a, b) => b[1].updatedAt.localeCompare(a[1].updatedAt)).slice(0, 200);
+  await setStorageItem(KEYS.answers, Object.fromEntries(entries));
+}
+
+export async function deleteAnswer(question: string): Promise<void> {
+  const all = await getAnswers();
+  delete all[normalizeQuestion(question)];
+  await setStorageItem(KEYS.answers, all);
+}
+
+// ==========================================
+// Resume file
+// ==========================================
+export async function getResume(): Promise<StoredResume | null> {
+  return await getStorageItem<StoredResume | null>(KEYS.resume, null);
+}
+
+export async function saveResume(resume: StoredResume | null): Promise<void> {
+  await setStorageItem(KEYS.resume, resume);
 }
 
 // ==========================================
