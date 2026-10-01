@@ -1,4 +1,5 @@
 import { AIProvider, AIModelOption, CandidateProfile, JobDetails } from '../../types';
+import { addApiLog } from '../storage';
 
 export const AI_MODELS: Record<AIProvider, AIModelOption[]> = {
   gemini: [
@@ -53,7 +54,8 @@ export async function executeAIRequest(
   apiKey: string,
   model: string,
   prompt: string,
-  systemPrompt?: string
+  systemPrompt?: string,
+  fileBase64?: string
 ): Promise<string> {
   const cleanKey = apiKey.trim();
   if (!cleanKey) {
@@ -64,8 +66,20 @@ export async function executeAIRequest(
   if (provider === 'gemini') {
     const cleanModel = model.replace(/^models\//, '').trim() || 'gemini-3.5-flash-lite';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${cleanKey}`;
+    
+    const parts: any[] = [];
+    if (fileBase64) {
+      parts.push({
+        inlineData: {
+          mimeType: 'application/pdf',
+          data: fileBase64
+        }
+      });
+    }
+    parts.push({ text: prompt });
+
     const body: any = {
-      contents: [{ parts: [{ text: prompt }] }],
+      contents: [{ parts }],
     };
     if (systemPrompt) {
       body.systemInstruction = { parts: [{ text: systemPrompt }] };
@@ -80,15 +94,16 @@ export async function executeAIRequest(
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       const rawMsg = err?.error?.message || `Gemini API error (${res.status})`;
+      // LOG ERROR
+      addApiLog({ timestamp: new Date().toISOString(), endpoint: url.split('?')[0], action: 'Gemini Generation (Error)', requestBody: body, responseBody: err, status: res.status }).catch(() => {});
       if (res.status === 404 || rawMsg.includes('is not found') || rawMsg.includes('not supported')) {
-        throw new Error(
-          `"${cleanModel}" was not found or has been retired. Please select "Gemini 3.5 Flash-Lite" in the Model dropdown.`
-        );
+        throw new Error(`"${cleanModel}" was not found or has been retired. Please select "Gemini 3.5 Flash-Lite" in the Model dropdown.`);
       }
       throw new Error(rawMsg);
     }
 
     const data = await res.json();
+    addApiLog({ timestamp: new Date().toISOString(), endpoint: url.split('?')[0], action: 'Gemini Generation', requestBody: body, responseBody: data, status: res.status }).catch(() => {});
     return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
   }
 
@@ -301,4 +316,52 @@ export async function fetchAvailableModels(
   }
 
   return AI_MODELS[provider] || [];
+}
+
+export async function parseResumeForFilters(
+  fileName: string,
+  fileBase64: string,
+  provider: AIProvider,
+  apiKey: string,
+  model: string
+): Promise<{ roles: string; keywords: string; excludes: string; location: string }> {
+  const systemPrompt = `[SYSTEM INSTRUCTION OVERRIDE]
+You are operating within the career-agent stateless backend. 
+ALL context (the raw PDF document) is attached to this request.
+You MUST extract the candidate's core identity based on this intake heuristic and output your final result as a STRICT JSON OBJECT.
+You MUST also generate strict exclusionary keywords in the "excludes" array. For example, if the candidate is Senior, exclude "Junior", "Intern". Also exclude tech stacks they clearly do not use if they are highly specialized.
+
+[OUTPUT SCHEMA]
+Output a JSON object with this exact schema:
+{
+  "roles": "Comma-separated list of 2-4 job titles they are targeting",
+  "keywords": "Comma-separated list of 3-6 core skills or keywords to prioritize",
+  "excludes": "Comma-separated list of negative keywords to exclude",
+  "location": "Their current primary location (e.g. Remote, or City)"
+}
+[/SYSTEM INSTRUCTION OVERRIDE]`;
+
+  const userPrompt = `Please extract the job search filters from the attached resume document. Output ONLY the JSON object.`;
+
+  const responseText = await executeAIRequest(
+    provider,
+    apiKey,
+    model,
+    userPrompt,
+    systemPrompt,
+    fileBase64
+  );
+
+  try {
+    const jsonStr = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(jsonStr);
+  } catch (e) {
+    console.error("Failed to parse AI JSON response:", responseText);
+    return {
+      roles: "Software Engineer",
+      keywords: "JavaScript, React",
+      excludes: "Senior, Manager",
+      location: "Remote"
+    };
+  }
 }

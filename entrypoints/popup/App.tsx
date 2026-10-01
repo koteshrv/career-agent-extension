@@ -16,6 +16,8 @@ import {
   addApplication,
   deleteApplication,
   clearApplications,
+  getTheme,
+  saveTheme,
   DEFAULT_SETTINGS,
   DEFAULT_PROFILE,
 } from '../../src/lib/storage';
@@ -26,6 +28,7 @@ import { SettingsView } from '../../src/components/SettingsView';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ExtensionView>('main');
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [settings, setSettings] = useState<ExtensionSettings>(DEFAULT_SETTINGS);
   const [syncedProfile, setSyncedProfile] = useState<SyncedProfileSummary | null>(null);
   const [profile, setProfile] = useState<CandidateProfile>(DEFAULT_PROFILE);
@@ -43,30 +46,42 @@ export const App: React.FC = () => {
     type: 'idle',
   });
 
-  // Keep dark mode default
+  // Apply dark mode class to document
   useEffect(() => {
-    document.documentElement.classList.add('dark');
-  }, []);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   // Load initial data
   useEffect(() => {
     async function loadData() {
-      const [storedSettings, storedSynced, storedProfile, storedApps] =
+      const [storedSettings, storedSynced, storedProfile, storedApps, storedTheme] =
         await Promise.all([
           getSettings(),
           getSyncedProfile(),
           getProfile(),
           getApplications(),
+          getTheme(),
         ]);
 
       setSettings(storedSettings);
       setSyncedProfile(storedSynced);
       setProfile(storedProfile);
       setApplications(storedApps);
+      setTheme(storedTheme);
     }
 
     loadData();
   }, []);
+
+  const handleThemeToggle = async () => {
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(nextTheme);
+    await saveTheme(nextTheme);
+  };
 
   // Safe message sender to active tab
   const sendMessageToTab = useCallback(async (tabId: number, message: any): Promise<any> => {
@@ -253,6 +268,8 @@ export const App: React.FC = () => {
         currentView={currentView}
         onViewChange={setCurrentView}
         settings={settings}
+        theme={theme}
+        onThemeToggle={handleThemeToggle}
       />
 
       {/* Main Content */}
