@@ -6,13 +6,24 @@ import { isAllowedOrigin, sanitizeApplication, sanitizeProfile, handleExternal }
 import { parseFilters } from '../src/lib/ai';
 
 describe('External bridge', () => {
-  it('only accepts careeragent.fyi origins', () => {
+  it('only accepts origins matching the manifest patterns', () => {
+    const prod = ['https://careeragent.fyi/*', 'https://*.careeragent.fyi/*'];
+    assert.strictEqual(isAllowedOrigin('https://careeragent.fyi', prod), true);
+    assert.strictEqual(isAllowedOrigin('https://jobs.careeragent.fyi', prod), true);
+    assert.strictEqual(isAllowedOrigin('https://evil.example', prod), false);
+    assert.strictEqual(isAllowedOrigin('https://careeragent.fyi.evil.example', prod), false);
+    assert.strictEqual(isAllowedOrigin('http://careeragent.fyi', prod), false);
+    assert.strictEqual(isAllowedOrigin('http://localhost:5174', prod), false);
+    assert.strictEqual(isAllowedOrigin(undefined, prod), false);
+
+    const dev = [...prod, 'http://localhost/*'];
+    assert.strictEqual(isAllowedOrigin('http://localhost:5174', dev), true);
+    assert.strictEqual(isAllowedOrigin('https://localhost:5174', dev), false);
+    assert.strictEqual(isAllowedOrigin('http://evil.example', dev), false);
+
+    // Without a chrome runtime (tests) the fallback is the production list.
     assert.strictEqual(isAllowedOrigin('https://careeragent.fyi'), true);
-    assert.strictEqual(isAllowedOrigin('https://jobs.careeragent.fyi'), true);
-    assert.strictEqual(isAllowedOrigin('https://evil.example'), false);
-    assert.strictEqual(isAllowedOrigin('https://careeragent.fyi.evil.example'), false);
-    assert.strictEqual(isAllowedOrigin('http://careeragent.fyi'), false);
-    assert.strictEqual(isAllowedOrigin(undefined), false);
+    assert.strictEqual(isAllowedOrigin('http://localhost:5174'), false);
   });
 
   it('rejects unknown actions and malformed payloads', async () => {

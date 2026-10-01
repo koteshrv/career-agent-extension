@@ -22,7 +22,6 @@ import type {
 const MAX_PDF_B64 = 7 * 1024 * 1024; // ~5 MB PDF
 const MAX_STR = 20_000; // resumeText / summary
 const RATE_LIMIT_PER_MIN = 30;
-const DEV = import.meta.env?.COMMAND === 'serve';
 
 export type ExternalRequest =
   | { action: 'ping' }
@@ -32,11 +31,38 @@ export type ExternalRequest =
   | { action: 'delete_application'; payload: { id?: unknown } }
   | { action: 'parse_resume_for_filters'; payload: { fileName?: unknown; fileData?: unknown } };
 
-export function isAllowedOrigin(origin: string | undefined): boolean {
+const FALLBACK_PATTERNS = ['https://careeragent.fyi/*', 'https://*.careeragent.fyi/*'];
+
+/** The manifest's externally_connectable.matches is the single source of truth (dev builds add http://localhost/*). */
+function manifestPatterns(): string[] {
+  try {
+    return chrome.runtime.getManifest().externally_connectable?.matches ?? FALLBACK_PATTERNS;
+  } catch {
+    return FALLBACK_PATTERNS;
+  }
+}
+
+/** Chrome already filters onMessageExternal by these patterns; this re-checks them in code as defence in depth. */
+export function isAllowedOrigin(origin: string | undefined, patterns: string[] = manifestPatterns()): boolean {
   if (!origin) return false;
-  if (origin === 'https://careeragent.fyi') return true;
-  if (origin.startsWith('https://') && origin.endsWith('.careeragent.fyi')) return true;
-  return DEV && /^http:\/\/localhost:\d+$/.test(origin);
+  let url: URL;
+  try {
+    url = new URL(origin);
+  } catch {
+    return false;
+  }
+  return patterns.some((pattern) => {
+    const m = /^(\*|https?):\/\/(\*|(?:\*\.)?[^/*:]+)(?::\d+)?\/.*$/.exec(pattern);
+    if (!m) return false;
+    const [, scheme, host] = m;
+    if (scheme !== '*' && `${scheme}:` !== url.protocol) return false;
+    if (host === '*') return true;
+    if (host.startsWith('*.')) {
+      const base = host.slice(2);
+      return url.hostname === base || url.hostname.endsWith(`.${base}`);
+    }
+    return url.hostname === host;
+  });
 }
 
 // ponytail: one global bucket; per-action buckets if the web app ever needs more than 30 calls/min
