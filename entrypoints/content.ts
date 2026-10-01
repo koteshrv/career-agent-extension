@@ -20,7 +20,7 @@ function showToast(text: string) {
   const shadow = host.attachShadow({ mode: 'open' });
   shadow.innerHTML = `
     <style>
-      .t { display:flex; align-items:center; gap:10px; background:#161a20; color:#e6e9ee; border:1px solid #262b33; border-radius:10px; padding:10px 14px; font: 500 13px/1.3 Inter, system-ui, sans-serif; box-shadow: 0 12px 32px -8px rgba(15,20,25,.4); max-width: 320px; }
+      .t { display:flex; align-items:center; gap:10px; background:#161a20; color:#e6e9ee; border:1px solid #262b33; border-radius:10px; padding:10px 14px; font: 500 13px/1.3 'Google Sans', 'Product Sans', system-ui, sans-serif; box-shadow: 0 12px 32px -8px rgba(15,20,25,.4); max-width: 320px; }
       .t span { color:#8c94a1; font-weight:400; display:block; margin-top:2px; }
     </style>
     <div class="t">${MARK}<div>Added to your pipeline<span></span></div></div>`;
