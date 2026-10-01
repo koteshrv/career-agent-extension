@@ -12,7 +12,7 @@ import {
   saveResume,
   getResume,
 } from './storage';
-import { parseResume } from './ai';
+import { parseResume, generateMaterial, type MaterialKind } from './ai';
 import { sanitizeProfile, sanitizeApplication, str } from './sanitize';
 export { sanitizeProfile, sanitizeApplication } from './sanitize';
 import { BridgeError } from './messages';
@@ -29,7 +29,8 @@ export type ExternalRequest =
   | { action: 'parse_resume_for_filters'; payload: { fileName?: unknown; fileData?: unknown } }
   | { action: 'parse_resume'; payload: { fileName?: unknown; fileData?: unknown } }
   | { action: 'save_resume'; payload: { name?: unknown; type?: unknown; data?: unknown } }
-  | { action: 'get_resume_meta' };
+  | { action: 'get_resume_meta' }
+  | { action: 'generate_material'; payload: { kind?: unknown; job?: { title?: unknown; company?: unknown; description?: unknown } } };
 
 const FALLBACK_PATTERNS = ['https://careeragent.fyi/*', 'https://*.careeragent.fyi/*'];
 
@@ -130,6 +131,16 @@ export async function handleExternal(msg: ExternalRequest): Promise<unknown> {
       }
       const parsed = await parseResume(fileName, fileData, settings.aiProvider, settings.aiApiKey, settings.aiModel);
       return msg.action === 'parse_resume' ? parsed : { filters: parsed.filters };
+    }
+    case 'generate_material': {
+      const kind = str(msg.payload?.kind, 20) as MaterialKind;
+      if (!['resume', 'cover_letter', 'cold_email'].includes(kind)) throw new BridgeError('BAD_PAYLOAD', 'kind must be resume, cover_letter or cold_email');
+      const job = { title: str(msg.payload?.job?.title, 200), company: str(msg.payload?.job?.company, 200), description: str(msg.payload?.job?.description, 12_000) };
+      if (!job.description) throw new BridgeError('BAD_PAYLOAD', 'job.description is required');
+      const settings = await getSettings();
+      if (!settings.aiApiKey.trim()) throw new BridgeError('NO_API_KEY', 'AI API Key not configured. Open the CareerAgent extension → Settings to add your key.');
+      const text = await generateMaterial(kind, job, await getProfile(), settings.aiProvider, settings.aiApiKey, settings.aiModel);
+      return { text };
     }
     default:
       throw new BridgeError('UNKNOWN_ACTION', `Unknown action: ${String((msg as { action?: unknown })?.action)}`);

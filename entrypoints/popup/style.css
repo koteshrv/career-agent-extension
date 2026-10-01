@@ -82,6 +82,14 @@ input, button, select, textarea {
   font-family: inherit;
 }
 
+select {
+  color-scheme: inherit;
+}
+option {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+}
+
 /* Custom compact scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
