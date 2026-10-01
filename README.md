@@ -106,7 +106,10 @@ The output directory will be `.output/firefox-mv3`.
 1. Open Google Chrome and navigate to `chrome://extensions/`.
 2. Enable **Developer mode** in the top right corner.
 3. Click **Load unpacked**.
-4. Select the `.output/chrome-mv3` folder.
+4. Select the folder for the build you want:
+   * `npm run dev` / `wxt build --mode development` → `.output/chrome-mv3-dev` (allows the dashboard on `http://localhost:*` to reach the extension, no CSP).
+   * `npm run build` → `.output/chrome-mv3` (production manifest: only `https://careeragent.fyi` may talk to the extension).
+5. Copy the extension **ID** shown on the card. The web dashboard needs it (`VITE_EXTENSION_ID`, or the Extension ID field on its Settings page). Each folder gets a different id, and the id changes if the folder moves.
 
 ### Firefox
 1. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`.
