@@ -1,4 +1,5 @@
 @import '@fontsource-variable/inter';
+@import '@fontsource-variable/geist-mono';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
