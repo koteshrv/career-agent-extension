@@ -463,7 +463,7 @@ const MATERIAL_PROMPTS: Record<MaterialKind, { system: string; ask: string; maxT
   resume: {
     system: `You rewrite a candidate's resume for one specific job posting.
 Rules: use ONLY facts from the candidate profile and resume text; never invent employers, dates, titles, metrics or skills. You may reorder, select and reword. Lead with what the posting asks for. Keep bullets short, concrete and in past tense with outcomes.
-Output plain Markdown with these sections, in this order: name line with contact details, Summary (2-3 sentences aimed at this role), Skills (grouped, posting-relevant first), Experience (each role: title, company, dates, 3-5 bullets), Education. No preamble, no commentary.`,
+Output Markdown, exactly this structure: "# Full Name" on the first line, then one line of contact details separated by " · ", then "## Summary" (2-3 sentences aimed at this role), "## Skills" (grouped lines, posting-relevant first), "## Experience" (each role as "### Title · Company", a line with dates, then 3-5 "- " bullets), "## Education" ("- " bullets). No preamble, no commentary, no code fences.`,
     ask: 'Write the tailored resume now.',
     maxTokens: 3500,
   },
