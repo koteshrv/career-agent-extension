@@ -1,0 +1,8 @@
+swiftlatexpdftex.js and swiftlatexpdftex.wasm are the pdfTeX engine from SwiftLaTeX
+(https://github.com/SwiftLaTeX/SwiftLaTeX), release 20-02-2022, Copyright (C) 2019 Elliott Wen.
+Licensed under the Eclipse Public License v2.0 (EPL-2.0), or GPL-2.0 with the Classpath exception.
+They are included unmodified. The engine fetches TeX Live packages on demand from texlive2.swiftlatex.com.
+
+Local modification to swiftlatexpdftex.js: when a response carries no "fileid"/"pkid" header the file is cached under a
+name derived from its lookup key, and a 404 is remembered like a 301. This lets the engine read TeX Live files served as
+plain static files from the extension itself (public/texlive) instead of a remote on-demand server.

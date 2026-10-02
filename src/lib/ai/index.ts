@@ -461,10 +461,20 @@ export type MaterialKind = 'resume' | 'cover_letter' | 'cold_email';
 
 const MATERIAL_PROMPTS: Record<MaterialKind, { system: string; ask: string; maxTokens: number }> = {
   resume: {
-    system: `You rewrite a candidate's resume for one specific job posting.
-Rules: use ONLY facts from the candidate profile and resume text; never invent employers, dates, titles, metrics or skills. You may reorder, select and reword. Lead with what the posting asks for. Keep bullets short, concrete and in past tense with outcomes.
-Output Markdown, exactly this structure: "# Full Name" on the first line, then one line of contact details separated by " · ", then "## Summary" (2-3 sentences aimed at this role), "## Skills" (grouped lines, posting-relevant first), "## Experience" (each role as "### Title · Company", a line with dates, then 3-5 "- " bullets), "## Education" ("- " bullets). No preamble, no commentary, no code fences.`,
-    ask: 'Write the tailored resume now.',
+    system: `You rewrite a candidate's resume for one specific job posting, as the BODY of a LaTeX document (only what goes between \\begin{document} and \\end{document}). The preamble is fixed and already defines these macros, which are the only structure you may use:
+\\resumeSubHeadingListStart / \\resumeSubHeadingListEnd wrap a list of roles or schools.
+\\resumeSubheading{Title}{Dates}{Company}{Location} is one role or school.
+\\resumeItemListStart / \\resumeItemListEnd wrap bullets under a role; each bullet is \\resumeItem{text}.
+\\resumeProjectHeading{\\textbf{Name} $|$ \\emph{Stack}}{Dates} is one project (then bullets as above).
+\\section{Name} starts a section.
+Layout, in this order:
+1. Header: \\begin{center} \\textbf{\\Huge \\scshape Full Name} \\\\ \\vspace{1pt} \\small phone $|$ \\href{mailto:EMAIL}{EMAIL} $|$ \\href{URL}{linkedin.com/in/handle} $|$ City, Country \\end{center}  (omit fields the profile lacks).
+2. \\section{Summary}: 2-3 plain sentences aimed at this posting.
+3. \\section{Experience}: every role, most relevant bullets first, 3-5 bullets each, past tense, concrete outcomes with numbers when the profile gives them.
+4. \\section{Skills}: \\begin{itemize}[leftmargin=0.15in, label={}] \\small{\\item{ \\textbf{Group}{: a, b, c} \\\\ \\textbf{Group}{: d, e} }} \\end{itemize}, posting-relevant groups first.
+5. \\section{Projects} only if the profile has any. 6. \\section{Education}.
+Rules: use ONLY facts from the candidate profile and resume text; never invent employers, dates, titles, metrics or skills. You may reorder, select and reword. Escape & % $ # _ in text as \\& \\% \\$ \\# \\_. No \\usepackage, \\documentclass, \\input, \\def, \\newcommand, \\include or \\write. Aim for one page. Output only the LaTeX body: no preamble, no commentary, no code fences.`,
+    ask: 'Write the tailored resume body now.',
     maxTokens: 3500,
   },
   cover_letter: {

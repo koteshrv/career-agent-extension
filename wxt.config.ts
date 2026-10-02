@@ -16,7 +16,8 @@ export default defineConfig({
     description: '1-click ATS application autofill and automatic job tracking for Greenhouse, Lever, Ashby, and LinkedIn.',
     version: '1.0.0',
     // activeTab covers the active tab's URL/title in the popup and on-demand injection, so no `tabs`.
-    permissions: ['storage', 'activeTab', 'scripting', 'unlimitedStorage'],
+    // offscreen: the LaTeX engine runs in a Web Worker, which a service worker cannot spawn.
+    permissions: ['storage', 'activeTab', 'scripting', 'unlimitedStorage', 'offscreen'],
     host_permissions: [
       '*://*.greenhouse.io/*',
       '*://*.lever.co/*',
@@ -56,20 +57,17 @@ export default defineConfig({
           },
         }
       : {}),
-    // Lock the service worker and popup to known hosts. Skipped in dev so WXT's HMR socket works.
-    ...(mode === 'development'
-      ? {}
-      : {
-          content_security_policy: {
-            extension_pages: [
-              "script-src 'self'",
-              "object-src 'none'",
-              "base-uri 'none'",
-              "form-action 'none'",
-              `connect-src ${[API_HOST, ...AI_HOSTS].join(' ')}`,
-            ].join('; '),
-          },
-        }),
+    // Lock extension pages to known hosts. 'wasm-unsafe-eval' is for the pdfTeX engine; connect-src 'self' lets its
+    // worker read the bundled TeX Live files. Dev adds WXT's HMR origin.
+    content_security_policy: {
+      extension_pages: [
+        `script-src 'self' 'wasm-unsafe-eval'${mode === 'development' ? ' http://localhost:3000' : ''}`,
+        "object-src 'none'",
+        "base-uri 'none'",
+        "form-action 'none'",
+        `connect-src 'self' ${[API_HOST, ...AI_HOSTS].join(' ')}${mode === 'development' ? ' ws://localhost:3000 http://localhost:3000' : ''}`,
+      ].join('; '),
+    },
     browser_specific_settings: {
       gecko: {
         id: 'extension@careeragent.fyi',

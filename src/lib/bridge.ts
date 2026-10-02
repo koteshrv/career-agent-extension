@@ -13,6 +13,8 @@ import {
   getResume,
 } from './storage';
 import { parseResume, generateMaterial, type MaterialKind } from './ai';
+import { resumeBodyFromModel, wrapResume, isFullDocument } from './latex/template';
+import { compileLatexInOffscreen } from './latex/compile';
 import { sanitizeProfile, sanitizeApplication, str } from './sanitize';
 export { sanitizeProfile, sanitizeApplication } from './sanitize';
 import { BridgeError } from './messages';
@@ -30,7 +32,8 @@ export type ExternalRequest =
   | { action: 'parse_resume'; payload: { fileName?: unknown; fileData?: unknown } }
   | { action: 'save_resume'; payload: { name?: unknown; type?: unknown; data?: unknown } }
   | { action: 'get_resume_meta' }
-  | { action: 'generate_material'; payload: { kind?: unknown; job?: { title?: unknown; company?: unknown; description?: unknown } } };
+  | { action: 'generate_material'; payload: { kind?: unknown; job?: { title?: unknown; company?: unknown; description?: unknown } } }
+  | { action: 'compile_latex'; payload: { tex?: unknown } };
 
 const FALLBACK_PATTERNS = ['https://careeragent.fyi/*', 'https://*.careeragent.fyi/*'];
 
@@ -142,8 +145,19 @@ export async function handleExternal(msg: ExternalRequest): Promise<unknown> {
       const settings = await getSettings();
       if (!settings.aiApiKey.trim()) throw new BridgeError('NO_API_KEY', 'AI API Key not configured. Open the CareerAgent extension → Settings to add your key.');
       const started = Date.now();
-      const text = await generateMaterial(kind, job, await getProfile(), settings.aiProvider, settings.aiApiKey, settings.aiModel);
-      return { text, meta: { provider: settings.aiProvider, model: settings.aiModel, durationMs: Date.now() - started } };
+      const raw = await generateMaterial(kind, job, await getProfile(), settings.aiProvider, settings.aiApiKey, settings.aiModel);
+      const meta = { provider: settings.aiProvider, model: settings.aiModel, durationMs: Date.now() - started };
+      if (kind !== 'resume') return { text: raw, meta };
+      // The model writes the body; the preamble is ours. Compile here so the dashboard gets a real PDF.
+      const tex = wrapResume(resumeBodyFromModel(raw));
+      const compiled = await compileLatexInOffscreen(tex);
+      return { text: tex, pdf: compiled.pdf, log: compiled.pdf ? undefined : compiled.log, meta: { ...meta, durationMs: Date.now() - started } };
+    }
+    case 'compile_latex': {
+      const tex = str(msg.payload?.tex, 200_000);
+      if (!tex) throw new BridgeError('BAD_PAYLOAD', 'tex is required');
+      const compiled = await compileLatexInOffscreen(isFullDocument(tex) ? tex : wrapResume(resumeBodyFromModel(tex)));
+      return { pdf: compiled.pdf, log: compiled.pdf ? undefined : compiled.log };
     }
     default:
       throw new BridgeError('UNKNOWN_ACTION', `Unknown action: ${String((msg as { action?: unknown })?.action)}`);

@@ -11,7 +11,8 @@ export type Msg =
   | { type: 'SAVE_ANSWER'; question: string; answer: string }
   | { type: 'APPLICATION_SUBMITTED'; job: JobDetails }
   | { type: 'COMPANY_SIGNAL'; company: string }
-  | { type: 'RUN_AUTOFILL_ON_ACTIVE_TAB' };
+  | { type: 'RUN_AUTOFILL_ON_ACTIVE_TAB' }
+  | { type: 'COMPILE_LATEX'; tex: string };
 
 export type CompanySignalResult = CompanySignal | null;
 
@@ -21,7 +22,7 @@ export type ErrCode =
   | 'BAD_PAYLOAD'
   | 'UNKNOWN_ACTION'
   | 'RATE_LIMITED'
-  | 'TIMEOUT';
+  | 'TIMEOUT' | 'NOT_SUPPORTED' | 'LATEX_FAILED';
 
 export type Res<T> = { ok: true; data: T } | { ok: false; code: ErrCode; message: string };
 
