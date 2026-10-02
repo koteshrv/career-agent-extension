@@ -541,6 +541,12 @@ function profileBrief(profile: CandidateProfile): string {
   return lines.join('\n');
 }
 
+/** The system prompt a material kind uses, for the activity log. */
+export function materialSystemPrompt(kind: MaterialKind, texTemplate = false): string {
+  return texTemplate ? TEX_TEMPLATE_PROMPT : MATERIAL_PROMPTS[kind].system;
+}
+export { EVALUATE_SYSTEM };
+
 /** Scores up to 15 postings against the profile in one call. */
 export async function evaluateJobs(
   jobs: JobForEvaluation[],
