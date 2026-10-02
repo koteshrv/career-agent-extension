@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit -p .
+      - run: npm test
+      - run: npx wxt build
+      - name: Upload build for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-mv3-${{ github.sha }}
+          path: .output/chrome-mv3
+          retention-days: 14

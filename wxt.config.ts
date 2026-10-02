@@ -1,4 +1,5 @@
 import { defineConfig } from 'wxt';
+import pkg from './package.json';
 
 const AI_HOSTS = [
   'https://generativelanguage.googleapis.com',
@@ -14,7 +15,11 @@ export default defineConfig({
   manifest: ({ browser, mode }) => ({
     name: 'CareerAgent - 1-Click ATS Autofill & Tracker',
     description: '1-click ATS application autofill and automatic job tracking for Greenhouse, Lever, Ashby, and LinkedIn.',
-    version: '1.0.0',
+    version: pkg.version,
+    // Public half of the signing key (private half lives outside the repo). It pins the extension id to
+    // plkniphjimejobodnkckdjndalimcicp for every unpacked install and for the Web Store listing, so the dashboard can
+    // address the extension without per-machine setup.
+    key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA8l46eeN5/i8eCSTB+lmI0e6ra1rjjOEXqd0ItoELDGaYkwi8SEw2ljZYaL9jGJd0piVHnhrJ2KsXw6Dl4eYrZCoUHmhBuudF6LHM+5MmXWTEsYxxNZIfXbQ2OhbFlpe601bM0flVWdFhGopCTnwETu4QOHpZSuFZR3wrm/kM41ZaiU1nvSsBcI5xa5nc8eSai64SlmytNM269sTUnrp6uv8clvSOyhcVLj2k4k0xmjcFglk37hiw+Fnkyea31O05Ja+0Mqj5YTvkgQ7dYP3rJYlU2KXCGsAx3fts2mT4TWjpfb7ofXo2axe43dwl2cXizyMZ0Jk0+tK8eiY986V4dQIDAQAB',
     // activeTab covers the active tab's URL/title in the popup and on-demand injection, so no `tabs`.
     // offscreen: the LaTeX engine runs in a Web Worker, which a service worker cannot spawn.
     permissions: ['storage', 'activeTab', 'scripting', 'unlimitedStorage', 'offscreen'],

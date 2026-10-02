@@ -1,0 +1,70 @@
+name: Release
+
+# Releases are cut on purpose, not on every merge: run this workflow by hand with a bump, or push a v* tag.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit -p .
+      - run: npm test
+
+      - name: Bump version and tag
+        if: github.event_name == 'workflow_dispatch'
+        id: bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          npm version "${{ inputs.bump }}" -m "release: v%s"
+          echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          git push --follow-tags origin HEAD:main
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "tag=${{ steps.bump.outputs.tag }}" >> "$GITHUB_OUTPUT";
+          else echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Build and zip
+        run: |
+          npx wxt zip
+          ls -la .output/*.zip
+
+      - name: GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          generate_release_notes: true
+          files: .output/*-chrome.zip
+          body: |
+            **Install (unpacked)**
+            1. Download the zip below and extract it.
+            2. Open `chrome://extensions`, turn on Developer mode, click *Load unpacked* and pick the extracted folder.
+            3. The extension id is always `plkniphjimejobodnkckdjndalimcicp`, so careeragent.fyi pairs with it automatically.
