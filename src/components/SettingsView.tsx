@@ -213,7 +213,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     <div className="space-y-3">
       {/* Title */}
       <div className="pb-1">
-        <h2 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+        <h2 className="text-sm font-medium text-foreground flex items-center gap-1.5">
           <Sparkles className="w-4 h-4 text-primary" />
           <span>AI and tracking</span>
         </h2>
@@ -243,7 +243,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <form onSubmit={handleTestAndSave} className="space-y-3.5 p-3.5 rounded-lg border border-border bg-card">
         {/* 1. AI Provider Selection */}
         <div>
-          <label className="block text-xs font-semibold text-foreground mb-1.5">
+          <label className="block text-xs font-medium text-foreground mb-1.5">
             AI Provider
           </label>
           <div className="grid grid-cols-2 gap-1.5">
@@ -254,7 +254,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 onClick={() => handleProviderChange(p)}
                 className={`py-1.5 px-2.5 rounded-lg text-xs font-medium border text-left transition-all cursor-pointer  select-none ${
                   formData.aiProvider === p
-                    ? 'border-primary/50 bg-primary/10 text-primary font-semibold ring-1 ring-primary/40'
+                    ? 'border-primary/50 bg-primary/10 text-primary font-medium ring-1 ring-primary/40'
                     : 'border-border/80 bg-secondary hover:bg-secondary/80 text-foreground'
                 }`}
               >
@@ -266,7 +266,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         {/* 2. Model Selection Dropdown & Auto-Discovery */}
         <div>
-          <div className="flex items-center justify-between text-xs font-semibold text-foreground mb-1">
+          <div className="flex items-center justify-between text-xs font-medium text-foreground mb-1">
             <span className="flex items-center gap-1">
               <Cpu className="w-3.5 h-3.5 text-primary" />
               <span>Model Selection</span>
@@ -277,7 +277,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 onClick={handleDetectModels}
                 disabled={isDetectingModels || !formData.aiApiKey.trim()}
                 title="Detect models available for your API key"
-                className="h-5 px-1.5 rounded border border-border/60 bg-secondary hover:bg-secondary/80 inline-flex items-center gap-1 text-[11px] font-semibold text-primary transition-all disabled:opacity-40 cursor-pointer select-none"
+                className="h-5 px-1.5 rounded border border-border/60 bg-secondary hover:bg-secondary/80 inline-flex items-center gap-1 text-[11px] font-medium text-primary transition-all disabled:opacity-40 cursor-pointer select-none"
               >
                 <RefreshCw className={`w-2.5 h-2.5 ${isDetectingModels ? 'animate-spin' : ''}`} />
                 <span>{isDetectingModels ? 'Detecting...' : 'Detect'}</span>
@@ -305,7 +305,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {/* 3. API Key Input */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+            <label className="text-xs font-medium text-foreground flex items-center gap-1">
               <KeyRound className="w-3.5 h-3.5 text-primary" />
               <span>{providerNames[formData.aiProvider]} API Key</span>
             </label>
@@ -314,7 +314,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 href={keyLink.url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                className="inline-flex items-center gap-0.5 text-[11px] font-medium text-primary hover:underline cursor-pointer"
               >
                 <span>Get Key</span>
                 <ExternalLink className="w-2.5 h-2.5" />
@@ -430,7 +430,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <button
               type="submit"
               disabled={isTesting || isSaving}
-              className="h-8 flex items-center gap-1.5 px-3.5 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground  transition-all disabled:opacity-50 cursor-pointer select-none"
+              className="h-8 flex items-center gap-1.5 px-3.5 rounded-lg text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground  transition-all disabled:opacity-50 cursor-pointer select-none"
             >
               <Save className="w-3.5 h-3.5" />
               <span>{isTesting ? 'Verifying...' : 'Verify & Save'}</span>

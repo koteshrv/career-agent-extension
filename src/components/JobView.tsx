@@ -71,7 +71,7 @@ export const JobView: React.FC<JobViewProps> = ({ job, loading, onRescan, tracke
             <RefreshCw />
           </IconButton>
         </div>
-        <h2 className="mt-2.5 text-[15px] font-semibold leading-snug text-foreground line-clamp-2">{job.title}</h2>
+        <h2 className="mt-2.5 text-[15px] font-medium leading-snug text-foreground line-clamp-2">{job.title}</h2>
         {job.url && (
           <a href={job.url} target="_blank" rel="noreferrer" className="mt-1 inline-flex max-w-full items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
             <ExternalLink className="size-3 shrink-0" />

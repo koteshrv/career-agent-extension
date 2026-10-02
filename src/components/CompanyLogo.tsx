@@ -21,7 +21,7 @@ export function CompanyLogo({ name, size = 28, className = "", fallbackIcon }: C
   const currentDomain = domains[domainIndex];
   
   // Use Google Favicons matching career-agent-web
-  const src = currentDomain ? `https://www.google.com/s2/favicons?domain=${currentDomain}&sz=128` : "";
+  const src = currentDomain ? `https://www.google.com/s2/favicons?domain=${currentDomain}&sz=256` : "";
 
   const initials = companyInitials(name);
   const hue = monogramHue(name);
@@ -29,7 +29,7 @@ export function CompanyLogo({ name, size = 28, className = "", fallbackIcon }: C
   const hasWidth = className.includes('w-') || className.includes('w:');
   const hasHeight = className.includes('h-') || className.includes('h:');
   const inlineStyle: React.CSSProperties = {
-    backgroundColor: (error || !currentDomain) ? `hsl(${hue}, 65%, 20%)` : 'transparent',
+    backgroundColor: (error || !currentDomain) ? `hsl(${hue}, 45%, 38%)` : '#ffffff',
     minWidth: !hasWidth ? size : undefined,
     width: !hasWidth ? size : undefined,
     height: !hasHeight ? size : undefined,
@@ -45,7 +45,14 @@ export function CompanyLogo({ name, size = 28, className = "", fallbackIcon }: C
         <img
           src={src}
           alt={`${name} logo`}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain p-[12%]"
+          onLoad={(e) => {
+            // Google hands back a 16px globe for unknown domains and tiny icons for many known ones; neither survives upscaling.
+            if (e.currentTarget.naturalWidth < 48) {
+              if (domainIndex < domains.length - 1) setDomainIndex((prev) => prev + 1);
+              else setError(true);
+            }
+          }}
           onError={() => {
             if (domainIndex < domains.length - 1) {
               setDomainIndex(prev => prev + 1);
@@ -56,7 +63,7 @@ export function CompanyLogo({ name, size = 28, className = "", fallbackIcon }: C
         />
       ) : (
         <span 
-          className="font-bold text-white leading-none select-none flex items-center justify-center w-full h-full"
+          className="font-medium text-white leading-none select-none flex items-center justify-center w-full h-full"
           style={{ fontSize: hasWidth ? '0.6em' : size * 0.45 }}
         >
           {initials}

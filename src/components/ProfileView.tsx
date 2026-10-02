@@ -54,7 +54,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, resume, onCha
       <section className="rounded-lg border border-border bg-card p-3.5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-foreground">Resume for file uploads</p>
+            <p className="text-[13px] font-medium text-foreground">Resume for file uploads</p>
             <p className="text-[11px] text-muted-foreground">{resume ? `${resume.name} · ${(resume.size / 1024).toFixed(0)} KB` : 'Attach a PDF and autofill will upload it where a form asks for one.'}</p>
           </div>
           {resume && (
