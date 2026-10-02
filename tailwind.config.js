@@ -7,10 +7,6 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
-      fontWeight: {
-        medium: '480',
-        semibold: '560',
-      },
       fontFamily: {
         sans: ['Inter Variable', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         mono: ['Geist Mono Variable', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],

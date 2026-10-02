@@ -114,13 +114,13 @@ export const JobView: React.FC<JobViewProps> = ({ job, loading, onRescan, tracke
           {autofill.busy ? 'Filling the form' : 'Autofill this application'}
         </Button>
         {autofill.message && (
-          <p role="status" className={`rounded-sm border px-2.5 py-2 text-xs ${autofill.tone === 'success' ? 'border-status-interviewing/30 bg-status-interviewing/10 text-foreground' : 'border-destructive/30 bg-destructive/10 text-destructive'}`}>
+          <p role="status" className={`rounded-sm border px-2.5 py-2 text-xs ${autofill.tone === 'success' ? 'border-transparent bg-[#d9f7e6] text-foreground dark:bg-[#0f2a1c]' : 'border-destructive/30 bg-destructive/10 text-destructive'}`}>
             {autofill.message}
           </p>
         )}
 
         {tracked ? (
-          <label className="flex h-9 items-center justify-between rounded-sm border border-border bg-card px-2.5 text-[13px]">
+          <label className="flex h-9 items-center justify-between rounded-full border border-border bg-card px-3.5 text-[13px]">
             <span className="text-muted-foreground">In your pipeline</span>
             <select value={tracked.status} onChange={(e) => onStatusChange(e.target.value as ApplicationStatus)} aria-label="Stage" className="cursor-pointer bg-transparent font-medium text-foreground outline-none">
               {(Object.keys(STATUS_LABELS) as ApplicationStatus[]).map((s) => (

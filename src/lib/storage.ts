@@ -279,7 +279,7 @@ export async function saveResume(resume: StoredResume | null): Promise<void> {
 // Theme Storage
 // ==========================================
 export async function getTheme(): Promise<'light' | 'dark'> {
-  return await getStorageItem<'light' | 'dark'>(KEYS.theme, 'dark');
+  return await getStorageItem<'light' | 'dark'>(KEYS.theme, 'light');
 }
 
 export async function saveTheme(theme: 'light' | 'dark'): Promise<void> {

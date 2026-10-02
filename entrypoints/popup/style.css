@@ -6,57 +6,57 @@
 
 :root {
   color-scheme: light;
-  --background: 220 18% 97%;
-  --foreground: 210 25% 8%;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 9%;
   --card: 0 0% 100%;
-  --card-foreground: 210 25% 8%;
+  --card-foreground: 0 0% 9%;
   --popover: 0 0% 100%;
-  --popover-foreground: 210 25% 8%;
-  --primary: 194 84% 30%;
+  --popover-foreground: 0 0% 9%;
+  --primary: 0 0% 9%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 216 20% 95%;
-  --secondary-foreground: 210 25% 8%;
-  --muted: 216 20% 95%;
-  --muted-foreground: 217 11% 40%;
-  --accent: 196 51% 93%;
-  --accent-foreground: 194 84% 30%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 0 0% 96%;
+  --accent-foreground: 0 0% 9%;
   --destructive: 4 76% 40%;
   --destructive-foreground: 0 0% 100%;
-  --border: 218 17% 91%;
-  --input: 219 14% 81%;
-  --ring: 194 84% 30%;
-  --radius: 0.625rem;
+  --border: 0 0% 93%;
+  --input: 0 0% 83%;
+  --ring: 0 0% 9%;
+  --radius: 0.75rem;
 
-  --status-new: 194 84% 30%;
-  --status-applied: 194 84% 30%;
-  --status-interviewing: 142 72% 29%;
+  --status-new: 221 83% 53%;
+  --status-applied: 221 83% 53%;
+  --status-interviewing: 142 71% 35%;
   --status-rejected: 4 76% 40%;
 }
 
 .dark {
   color-scheme: dark;
-  --background: 220 17% 7%;
-  --foreground: 213 15% 88%;
-  --card: 216 19% 11%;
-  --card-foreground: 213 15% 88%;
-  --popover: 216 19% 11%;
-  --popover-foreground: 213 15% 88%;
-  --primary: 195 58% 51%;
-  --primary-foreground: 210 33% 7%;
-  --secondary: 215 18% 13%;
-  --secondary-foreground: 218 19% 92%;
-  --muted: 215 18% 13%;
-  --muted-foreground: 217 10% 59%;
-  --accent: 196 48% 14%;
-  --accent-foreground: 195 58% 51%;
+  --background: 0 0% 4%;
+  --foreground: 0 0% 93%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 93%;
+  --popover: 0 0% 7%;
+  --popover-foreground: 0 0% 93%;
+  --primary: 0 0% 93%;
+  --primary-foreground: 0 0% 4%;
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 93%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 56%;
+  --accent: 0 0% 10%;
+  --accent-foreground: 0 0% 93%;
   --destructive: 4 92% 69%;
-  --destructive-foreground: 210 33% 7%;
-  --border: 217 15% 17%;
-  --input: 215 14% 25%;
-  --ring: 195 58% 51%;
+  --destructive-foreground: 0 0% 4%;
+  --border: 0 0% 15%;
+  --input: 0 0% 23%;
+  --ring: 0 0% 93%;
 
-  --status-new: 195 58% 51%;
-  --status-applied: 195 58% 51%;
+  --status-new: 217 91% 60%;
+  --status-applied: 217 91% 60%;
   --status-interviewing: 151 50% 53%;
   --status-rejected: 4 92% 69%;
 }
@@ -76,8 +76,6 @@ html, body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
   -webkit-font-smoothing: antialiased;
-  font-optical-sizing: none;
-  font-variation-settings: 'opsz' 32;
 }
 
 input, button, select, textarea {
