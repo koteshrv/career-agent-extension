@@ -40,6 +40,7 @@ export type ExternalRequest =
   | { action: 'generate_material'; payload: { kind?: unknown; baseResumeId?: unknown; job?: { title?: unknown; company?: unknown; description?: unknown } } }
   | { action: 'list_resumes' }
   | { action: 'add_resume'; payload: { name?: unknown; kind?: unknown; data?: unknown; text?: unknown } }
+  | { action: 'get_resume'; payload: { id?: unknown } }
   | { action: 'delete_resume'; payload: { id?: unknown } }
   | { action: 'set_upload_resume'; payload: { id?: unknown } }
   | { action: 'compile_latex'; payload: { tex?: unknown } };
@@ -126,6 +127,13 @@ export async function handleExternal(msg: ExternalRequest): Promise<unknown> {
       const text = str(msg.payload?.text, 400_000);
       if (!text) throw new BridgeError('BAD_PAYLOAD', 'text is required for a text resume');
       return addResume({ name, type: 'text/plain', kind, size: text.length, data: '', text, updatedAt: new Date().toISOString() });
+    }
+    case 'get_resume': {
+      const id = str(msg.payload?.id, 64);
+      const r = (await listResumes()).find((x) => x.id === id);
+      if (!r) throw new BridgeError('BAD_PAYLOAD', 'No resume with that id');
+      // Text sources only; the PDF bytes stay in the extension.
+      return { id: r.id, name: r.name, kind: r.kind ?? 'pdf', text: r.kind && r.kind !== 'pdf' ? r.text ?? '' : undefined };
     }
     case 'delete_resume': {
       const id = str(msg.payload?.id, 64);
