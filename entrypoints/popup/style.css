@@ -76,7 +76,8 @@ html, body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
   -webkit-font-smoothing: antialiased;
-  font-optical-sizing: auto;
+  font-optical-sizing: none;
+  font-variation-settings: 'opsz' 32;
 }
 
 input, button, select, textarea {
