@@ -7,8 +7,9 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      fontWeight: { medium: '450', semibold: '500', bold: '540' },
       fontFamily: {
-        sans: ['DM Sans Variable', 'DM Sans', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['Geist Variable', 'Geist', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         mono: ['Geist Mono Variable', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       colors: {

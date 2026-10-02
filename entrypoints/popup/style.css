@@ -1,4 +1,4 @@
-@import '@fontsource-variable/dm-sans';
+@import '@fontsource-variable/geist';
 @import '@fontsource-variable/geist-mono';
 @tailwind base;
 @tailwind components;
@@ -6,59 +6,59 @@
 
 :root {
   color-scheme: light;
-  --background: 0 0% 100%;
-  --foreground: 0 0% 9%;
+  --background: 45 33% 97%;
+  --foreground: 45 6% 11%;
   --card: 0 0% 100%;
-  --card-foreground: 0 0% 9%;
+  --card-foreground: 45 6% 11%;
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 9%;
-  --primary: 0 0% 9%;
+  --popover-foreground: 45 6% 11%;
+  --primary: 15 55% 52%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 0 0% 96%;
-  --secondary-foreground: 0 0% 9%;
-  --muted: 0 0% 96%;
-  --muted-foreground: 0 0% 45%;
-  --accent: 0 0% 96%;
-  --accent-foreground: 0 0% 9%;
-  --destructive: 4 76% 40%;
+  --secondary: 47 24% 93%;
+  --secondary-foreground: 45 6% 11%;
+  --muted: 47 24% 93%;
+  --muted-foreground: 45 5% 41%;
+  --accent: 17 55% 92%;
+  --accent-foreground: 17 56% 42%;
+  --destructive: 5 66% 40%;
   --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 93%;
-  --input: 0 0% 83%;
-  --ring: 0 0% 9%;
+  --border: 46 20% 87%;
+  --input: 45 14% 78%;
+  --ring: 45 14% 78%;
   --radius: 0.75rem;
 
-  --status-new: 221 83% 53%;
-  --status-applied: 221 83% 53%;
-  --status-interviewing: 142 71% 35%;
-  --status-rejected: 4 76% 40%;
+  --status-new: 215 60% 60%;
+  --status-applied: 215 60% 60%;
+  --status-interviewing: 136 33% 46%;
+  --status-rejected: 5 66% 40%;
 }
 
 .dark {
   color-scheme: dark;
-  --background: 0 0% 4%;
-  --foreground: 0 0% 93%;
-  --card: 0 0% 7%;
-  --card-foreground: 0 0% 93%;
-  --popover: 0 0% 7%;
-  --popover-foreground: 0 0% 93%;
-  --primary: 0 0% 93%;
-  --primary-foreground: 0 0% 4%;
-  --secondary: 0 0% 10%;
-  --secondary-foreground: 0 0% 93%;
-  --muted: 0 0% 10%;
-  --muted-foreground: 0 0% 56%;
-  --accent: 0 0% 10%;
-  --accent-foreground: 0 0% 93%;
-  --destructive: 4 92% 69%;
-  --destructive-foreground: 0 0% 4%;
-  --border: 0 0% 15%;
-  --input: 0 0% 23%;
-  --ring: 0 0% 93%;
+  --background: 60 3% 15%;
+  --foreground: 50 17% 91%;
+  --card: 60 2% 17%;
+  --card-foreground: 50 17% 91%;
+  --popover: 60 2% 17%;
+  --popover-foreground: 50 17% 91%;
+  --primary: 15 63% 60%;
+  --primary-foreground: 45 6% 11%;
+  --secondary: 60 2% 21%;
+  --secondary-foreground: 50 17% 91%;
+  --muted: 60 2% 21%;
+  --muted-foreground: 50 6% 62%;
+  --accent: 20 22% 20%;
+  --accent-foreground: 17 69% 67%;
+  --destructive: 8 79% 71%;
+  --destructive-foreground: 45 6% 11%;
+  --border: 60 3% 23%;
+  --input: 60 3% 31%;
+  --ring: 60 3% 31%;
 
-  --status-new: 217 91% 60%;
-  --status-applied: 217 91% 60%;
-  --status-interviewing: 151 50% 53%;
-  --status-rejected: 4 92% 69%;
+  --status-new: 215 60% 60%;
+  --status-applied: 215 60% 60%;
+  --status-interviewing: 136 33% 56%;
+  --status-rejected: 8 79% 71%;
 }
 
 *, ::before, ::after {
@@ -72,11 +72,12 @@ html, body {
   overflow: hidden;
   margin: 0;
   padding: 0;
-  font-family: 'DM Sans Variable', 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Geist Variable', 'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
   -webkit-font-smoothing: antialiased;
-  font-optical-sizing: auto;
+  -moz-osx-font-smoothing: grayscale;
+  font-weight: 400;
 }
 
 input, button, select, textarea {

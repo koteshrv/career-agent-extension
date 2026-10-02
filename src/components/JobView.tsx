@@ -120,7 +120,7 @@ export const JobView: React.FC<JobViewProps> = ({ job, loading, onRescan, tracke
         )}
 
         {tracked ? (
-          <label className="flex h-9 items-center justify-between rounded-full border border-border bg-card px-3.5 text-[13px]">
+          <label className="flex h-9 items-center justify-between rounded-lg border border-border bg-card px-3.5 text-[13px]">
             <span className="text-muted-foreground">In your pipeline</span>
             <select value={tracked.status} onChange={(e) => onStatusChange(e.target.value as ApplicationStatus)} aria-label="Stage" className="cursor-pointer bg-transparent font-medium text-foreground outline-none">
               {(Object.keys(STATUS_LABELS) as ApplicationStatus[]).map((s) => (
