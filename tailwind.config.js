@@ -9,7 +9,7 @@ export default {
     extend: {
       fontWeight: { medium: '450', semibold: '500', bold: '540' },
       fontFamily: {
-        sans: ['Geist Variable', 'Geist', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['Google Sans Variable', 'Google Sans', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         mono: ['Geist Mono Variable', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       colors: {

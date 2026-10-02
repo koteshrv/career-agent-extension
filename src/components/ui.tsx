@@ -49,7 +49,7 @@ export const Toggle: React.FC<{ label: string; hint?: string; checked: boolean; 
 );
 
 export const Chip: React.FC<{ tone?: 'neutral' | 'good' | 'accent'; children: React.ReactNode }> = ({ tone = 'neutral', children }) => (
-  <span className={`inline-flex h-5 items-center rounded-full px-2 text-[11px] font-medium text-foreground ${tone === 'good' ? 'bg-[#e3f1e5] dark:bg-[#2a3a2d]' : tone === 'accent' ? 'bg-[#e1ebf8] dark:bg-[#2b3442]' : 'bg-muted'}`}>{children}</span>
+  <span className={`inline-flex h-5 items-center rounded-full px-2 text-[11px] font-medium text-foreground ${tone === 'good' ? 'bg-[#dff5e8] dark:bg-[#163526]' : tone === 'accent' ? 'bg-[#e1ecfd] dark:bg-[#1d2a44]' : 'bg-muted'}`}>{children}</span>
 );
 
 export const Empty: React.FC<{ title: string; body?: string; action?: React.ReactNode; icon?: React.ReactNode }> = ({ title, body, action, icon }) => (
