@@ -175,6 +175,7 @@ export async function executeAIRequest(
         'Content-Type': 'application/json',
         'x-api-key': cleanKey,
         'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify(body),
     });
@@ -323,6 +324,35 @@ export async function fetchAvailableModels(
           name: m.id,
           description: `Groq LPU model (${m.owned_by || 'groq'})`,
         }));
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  if (provider === 'openai') {
+    try {
+      const res = await fetch('https://api.openai.com/v1/models', { headers: { Authorization: `Bearer ${cleanKey}` } });
+      if (res.ok) {
+        const data = await res.json();
+        const ids: string[] = (data.data || []).map((m: any) => String(m.id));
+        const chat = ids.filter((id) => /^(gpt-|o\d)/.test(id) && !/(audio|realtime|transcribe|tts|search|embedding|image|moderation|instruct)/.test(id)).sort();
+        if (chat.length > 0) return chat.map((id) => ({ id, name: id, description: AI_MODELS.openai.find((m) => m.id === id)?.description || '' }));
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  if (provider === 'anthropic') {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/models?limit=100', {
+        headers: { 'x-api-key': cleanKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const models: any[] = data.data || [];
+        if (models.length > 0) return models.map((m) => ({ id: m.id, name: m.display_name || m.id, description: AI_MODELS.anthropic.find((x) => x.id === m.id)?.description || '' }));
       }
     } catch {
       // Fallback

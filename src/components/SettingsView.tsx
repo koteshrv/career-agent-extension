@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ExtensionSettings, AIProvider } from '../types';
 import { saveSettings } from '../lib/storage';
 import { AI_MODELS, AI_KEY_LINKS, testAIConnection, fetchAvailableModels } from '../lib/ai';
@@ -12,7 +12,6 @@ import {
   Save,
   KeyRound,
   Cpu,
-  RefreshCw,
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -42,7 +41,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [showKey, setShowKey] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDetectingModels, setIsDetectingModels] = useState(false);
+  const [modelState, setModelState] = useState<'idle' | 'loading' | 'ready' | 'failed'>('idle');
   const [dynamicModels, setDynamicModels] = useState<Record<AIProvider, any[]>>({
     gemini: AI_MODELS.gemini,
     openai: AI_MODELS.openai,
@@ -95,43 +94,29 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     });
   };
 
-  const handleDetectModels = async () => {
-    if (!formData.aiApiKey.trim()) {
-      setFeedback({
-        type: 'error',
-        message: 'Please paste your API Key first to detect available models.',
-      });
-      return;
-    }
-    setIsDetectingModels(true);
-    setFeedback({ type: null, message: null });
-    try {
-      const fetched = await fetchAvailableModels(formData.aiProvider, formData.aiApiKey);
-      if (fetched && fetched.length > 0) {
-        setDynamicModels((prev) => ({ ...prev, [formData.aiProvider]: fetched }));
-        const exists = fetched.some((m) => m.id === formData.aiModel);
-        if (!exists) {
-          setFormData((prev) => ({ ...prev, aiModel: fetched[0].id }));
-        }
-        setFeedback({
-          type: 'success',
-          message: `Discovered ${fetched.length} supported models for your key!`,
-        });
-      } else {
-        setFeedback({
-          type: 'error',
-          message: 'No compatible models found for this key.',
-        });
+  // Models list themselves: once a key looks complete, ask the provider what it can run.
+  const hasKey = formData.aiApiKey.trim().length >= 20;
+  useEffect(() => {
+    if (!hasKey) { setModelState('idle'); return; }
+    const provider = formData.aiProvider;
+    const key = formData.aiApiKey.trim();
+    let cancelled = false;
+    setModelState('loading');
+    const t = setTimeout(async () => {
+      try {
+        const fetched = await fetchAvailableModels(provider, key);
+        if (cancelled) return;
+        const live = fetched.length > 0 && fetched !== AI_MODELS[provider];
+        setDynamicModels((prev) => ({ ...prev, [provider]: fetched.length > 0 ? fetched : AI_MODELS[provider] }));
+        setFormData((prev) => (fetched.some((m) => m.id === prev.aiModel) ? prev : { ...prev, aiModel: fetched[0]?.id || prev.aiModel }));
+        setModelState(live ? 'ready' : 'failed');
+      } catch {
+        if (!cancelled) setModelState('failed');
       }
-    } catch (err: any) {
-      setFeedback({
-        type: 'error',
-        message: err?.message || 'Failed to detect models.',
-      });
-    } finally {
-      setIsDetectingModels(false);
-    }
-  };
+    }, 500);
+    return () => { cancelled = true; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.aiProvider, formData.aiApiKey]);
 
   // Direct save without requiring a network call
   const handleDirectSave = async () => {
@@ -264,45 +249,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
 
-        {/* 2. Model Selection Dropdown & Auto-Discovery */}
-        <div>
-          <div className="flex items-center justify-between text-xs font-medium text-foreground mb-1">
-            <span className="flex items-center gap-1">
-              <Cpu className="w-3.5 h-3.5 text-primary" />
-              <span>Model Selection</span>
-            </span>
-            {(formData.aiProvider === 'gemini' || formData.aiProvider === 'groq') && (
-              <button
-                type="button"
-                onClick={handleDetectModels}
-                disabled={isDetectingModels || !formData.aiApiKey.trim()}
-                title="Detect models available for your API key"
-                className="h-5 px-1.5 rounded border border-border/60 bg-secondary hover:bg-secondary/80 inline-flex items-center gap-1 text-[11px] font-medium text-primary transition-all disabled:opacity-40 cursor-pointer select-none"
-              >
-                <RefreshCw className={`w-2.5 h-2.5 ${isDetectingModels ? 'animate-spin' : ''}`} />
-                <span>{isDetectingModels ? 'Detecting...' : 'Detect'}</span>
-              </button>
-            )}
-          </div>
-
-          <select
-            value={formData.aiModel}
-            onChange={(e) => setFormData({ ...formData, aiModel: e.target.value })}
-            className="w-full px-2.5 py-1.5 rounded-lg text-xs border border-border/80 bg-background text-foreground  focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary cursor-pointer"
-          >
-            {availableModels.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-
-          <p className="text-[11px] text-muted-foreground pt-1">
-            {availableModels.find((m) => m.id === formData.aiModel)?.description || ''}
-          </p>
-        </div>
-
-        {/* 3. API Key Input */}
+        {/* 2. API Key Input */}
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="text-xs font-medium text-foreground flex items-center gap-1">
@@ -346,6 +293,36 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
           <p className="text-[11px] text-muted-foreground pt-1 leading-tight">
             Stored only in this browser. Never sent to a CareerAgent server.
+          </p>
+        </div>
+
+        {/* 3. Model: fills in from the provider once a key is present */}
+        <div className={hasKey ? '' : 'opacity-40 pointer-events-none select-none'} aria-disabled={!hasKey}>
+          <div className="flex items-center justify-between text-xs font-medium text-foreground mb-1">
+            <span className="flex items-center gap-1">
+              <Cpu className="w-3.5 h-3.5 text-primary" />
+              <span>Model</span>
+            </span>
+            <span className="text-[11px] font-normal text-muted-foreground">
+              {!hasKey ? 'Add a key to choose' : modelState === 'loading' ? 'Loading models…' : modelState === 'ready' ? `${availableModels.length} available for this key` : modelState === 'failed' ? 'Showing defaults' : ''}
+            </span>
+          </div>
+
+          <select
+            value={formData.aiModel}
+            onChange={(e) => setFormData({ ...formData, aiModel: e.target.value })}
+            disabled={!hasKey || modelState === 'loading'}
+            className="w-full px-2.5 py-1.5 rounded-lg text-xs border border-border/80 bg-background text-foreground  focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary cursor-pointer disabled:cursor-default"
+          >
+            {availableModels.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+
+          <p className="text-[11px] text-muted-foreground pt-1">
+            {availableModels.find((m) => m.id === formData.aiModel)?.description || ''}
           </p>
         </div>
 
