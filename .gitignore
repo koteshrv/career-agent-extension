@@ -3,3 +3,18 @@ node_modules/
 .wxt/
 *.log
 .DS_Store
+
+# Environment and machine-local files
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+.playwright-mcp/
+
+# Agent tooling
+.agents/
+.claude/
+.cursor/
+.mcp.json
+CLAUDE.local.md
