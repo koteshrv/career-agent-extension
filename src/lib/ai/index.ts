@@ -1,5 +1,5 @@
 import { parseEvaluations, type JobForEvaluation, type JobEvaluation } from './evaluate';
-import { PLAYBOOKS } from './prompts';
+import { getPlaybooks } from './prompts';
 import { composeContext, composeTriageContext, parseJsonObject, parseTailoredResume } from './playbooks';
 import { renderResumeBody } from '../latex/render';
 import { AIProvider, AIModelOption, CandidateProfile, JobDetails, ResumeFilters } from '../../types';
@@ -545,11 +545,14 @@ function profileBrief(profile: CandidateProfile): string {
 }
 
 /** The system prompt a material kind uses, for the activity log. */
-export function materialSystemPrompt(kind: MaterialKind, texTemplate = false): string {
+export async function materialSystemPrompt(kind: MaterialKind, texTemplate = false): Promise<string> {
   if (texTemplate) return TEX_TEMPLATE_PROMPT;
-  return kind === 'resume' ? PLAYBOOKS.latex : kind === 'cover_letter' ? PLAYBOOKS.cover : PLAYBOOKS.email;
+  const p = await getPlaybooks();
+  return kind === 'resume' ? p.latex : kind === 'cover_letter' ? p.cover : p.email;
 }
-export const EVALUATE_SYSTEM = PLAYBOOKS.triage;
+export async function triageSystemPrompt(): Promise<string> {
+  return (await getPlaybooks()).triage;
+}
 
 /** Scores up to 15 postings against the profile in one call. */
 export async function evaluateJobs(
@@ -560,7 +563,7 @@ export async function evaluateJobs(
   model: string
 ): Promise<JobEvaluation[]> {
   const raw = await executeAIRequest(provider, apiKey, model, composeTriageContext(jobs, profileBrief(profile)), {
-    systemPrompt: PLAYBOOKS.triage,
+    systemPrompt: (await getPlaybooks()).triage,
     json: true,
     maxTokens: 400 + jobs.length * 220,
   });
@@ -605,20 +608,21 @@ export async function generateMaterial(
   }
 
   const context = composeContext(job, candidate);
+  const playbooks = await getPlaybooks();
   if (kind === 'resume') {
-    const raw = await executeAIRequest(provider, apiKey, model, context, { systemPrompt: PLAYBOOKS.latex, json: true, maxTokens: 3500 });
+    const raw = await executeAIRequest(provider, apiKey, model, context, { systemPrompt: playbooks.latex, json: true, maxTokens: 3500 });
     const tailored = parseTailoredResume(raw);
     if (!tailored) throw new Error('The AI did not return the resume JSON the playbook asks for. Try again or pick another model.');
     return { text: renderResumeBody(profile, tailored), changes: tailored.changes_made };
   }
   if (kind === 'cover_letter') {
-    const raw = await executeAIRequest(provider, apiKey, model, context, { systemPrompt: PLAYBOOKS.cover, json: true, maxTokens: 1500 });
+    const raw = await executeAIRequest(provider, apiKey, model, context, { systemPrompt: playbooks.cover, json: true, maxTokens: 1500 });
     const o = parseJsonObject(raw);
     const letter = String(o?.cover_letter ?? '').trim();
     if (!letter) throw new Error('The AI did not return the cover letter JSON the playbook asks for. Try again.');
     return { text: letter };
   }
-  const raw = await executeAIRequest(provider, apiKey, model, context, { systemPrompt: PLAYBOOKS.email, json: true, maxTokens: 1200 });
+  const raw = await executeAIRequest(provider, apiKey, model, context, { systemPrompt: playbooks.email, json: true, maxTokens: 1200 });
   const o = parseJsonObject(raw);
   const body = String(o?.email_body ?? '').trim();
   if (!body) throw new Error('The AI did not return the email JSON the playbook asks for. Try again.');
