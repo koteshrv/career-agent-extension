@@ -129,8 +129,10 @@ export async function handleExternal(msg: ExternalRequest): Promise<unknown> {
           'AI API Key not configured. Open the CareerAgent extension → Settings to add your key.'
         );
       }
+      const started = Date.now();
       const parsed = await parseResume(fileName, fileData, settings.aiProvider, settings.aiApiKey, settings.aiModel);
-      return msg.action === 'parse_resume' ? parsed : { filters: parsed.filters };
+      const meta = { provider: settings.aiProvider, model: settings.aiModel, durationMs: Date.now() - started };
+      return msg.action === 'parse_resume' ? { ...parsed, meta } : { filters: parsed.filters, meta };
     }
     case 'generate_material': {
       const kind = str(msg.payload?.kind, 20) as MaterialKind;
@@ -139,8 +141,9 @@ export async function handleExternal(msg: ExternalRequest): Promise<unknown> {
       if (!job.description) throw new BridgeError('BAD_PAYLOAD', 'job.description is required');
       const settings = await getSettings();
       if (!settings.aiApiKey.trim()) throw new BridgeError('NO_API_KEY', 'AI API Key not configured. Open the CareerAgent extension → Settings to add your key.');
+      const started = Date.now();
       const text = await generateMaterial(kind, job, await getProfile(), settings.aiProvider, settings.aiApiKey, settings.aiModel);
-      return { text };
+      return { text, meta: { provider: settings.aiProvider, model: settings.aiModel, durationMs: Date.now() - started } };
     }
     default:
       throw new BridgeError('UNKNOWN_ACTION', `Unknown action: ${String((msg as { action?: unknown })?.action)}`);
