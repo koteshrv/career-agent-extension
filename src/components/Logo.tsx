@@ -1,11 +1,10 @@
 import React from 'react';
 
-/** The CareerAgent mark: three rising steps in the accent. Theme-aware via tokens. */
+/** The CareerAgent mark: a staircase climbing to a point, in the accent. Theme-aware via tokens. */
 export const Mark: React.FC<{ size?: number; className?: string }> = ({ size = 20, className = '' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={`shrink-0 ${className}`}>
-    <rect x="2" y="14" width="5.5" height="8" rx="1.5" fill="hsl(var(--primary))" />
-    <rect x="9.25" y="8" width="5.5" height="14" rx="1.5" fill="hsl(var(--primary))" />
-    <rect x="16.5" y="2" width="5.5" height="20" rx="1.5" fill="hsl(var(--primary))" />
+    <path d="M2.5 20.5h6v-6h6v-6h6" fill="none" stroke="hsl(var(--primary))" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="20.5" cy="4" r="2.5" fill="hsl(var(--primary))" />
   </svg>
 );
 
