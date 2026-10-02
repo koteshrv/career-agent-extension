@@ -459,6 +459,19 @@ export async function parseResumeForFilters(
 
 export type MaterialKind = 'resume' | 'cover_letter' | 'cold_email';
 
+
+/**
+ * House writing rules for anything the candidate will send, distilled from career-ops (github.com/career-ops) modes
+ * cover.md, email.md and _writing.md: facts only, specifics over abstractions, no clichés, no em dashes.
+ */
+const WRITING_RULES = `Writing rules (apply to every sentence):
+- Facts come only from the candidate profile and resume. Never invent employers, dates, titles, metrics, tools or skills. Mirror the posting's vocabulary; never adopt its claims.
+- Specifics over abstractions: "cut p95 latency from 2.1s to 380ms" beats "improved performance". Name tools, systems and outcomes.
+- Active voice. Vary sentence length and bullet openers; do not start every bullet with the same verb.
+- Banned: "passionate about", "results-oriented", "proven track record", "leveraged", "spearheaded", "facilitated", "synergies", "robust", "seamless", "cutting-edge", "innovative", "fast-paced", "demonstrated ability to", "best practices", "perfect fit", "unique opportunity", "excited to", "I am writing to express", "move the needle", "data-driven", "actionable insights".
+- No em dashes; use commas or full stops. Plain ASCII punctuation.
+- Use a posting keyword once where it fits naturally; never repeat it for density.`;
+
 const MATERIAL_PROMPTS: Record<MaterialKind, { system: string; ask: string; maxTokens: number }> = {
   resume: {
     system: `You rewrite a candidate's resume for one specific job posting, as the BODY of a LaTeX document (only what goes between \\begin{document} and \\end{document}). The preamble is fixed and already defines these macros, which are the only structure you may use:
@@ -473,19 +486,34 @@ Layout, in this order:
 3. \\section{Experience}: every role, most relevant bullets first, 3-5 bullets each, past tense, concrete outcomes with numbers when the profile gives them.
 4. \\section{Skills}: \\begin{itemize}[leftmargin=0.15in, label={}] \\small{\\item{ \\textbf{Group}{: a, b, c} \\\\ \\textbf{Group}{: d, e} }} \\end{itemize}, posting-relevant groups first.
 5. \\section{Projects} only if the profile has any. 6. \\section{Education}.
-Rules: use ONLY facts from the candidate profile and resume text; never invent employers, dates, titles, metrics or skills. You may reorder, select and reword. Escape & % $ # _ in text as \\& \\% \\$ \\# \\_. No \\usepackage, \\documentclass, \\input, \\def, \\newcommand, \\include or \\write. Aim for one page. Output only the LaTeX body: no preamble, no commentary, no code fences.`,
+Keyword strategy: extract the posting's 15-20 key terms and mirror that vocabulary in the summary, the first bullet of each role and the skills groups, rewording existing achievements only.\n${WRITING_RULES}\nLaTeX rules: you may reorder, select and reword. Escape & % $ # _ in text as \\& \\% \\$ \\# \\_. No \\usepackage, \\documentclass, \\input, \\def, \\newcommand, \\include or \\write. Aim for one page. Output only the LaTeX body: no preamble, no commentary, no code fences.`,
     ask: 'Write the tailored resume body now.',
     maxTokens: 3500,
   },
   cover_letter: {
-    system: `You write a short, specific cover letter for one job posting on behalf of the candidate.
-Rules: first person, 180-260 words, four short paragraphs: why this role at this company, the two or three experiences that match what the posting asks for (use real facts from the profile only), what you would do in the first months, a one-line close. Plain, direct language. No clichés ("passionate", "fast-paced"), no flattery, no bullet points. Output only the letter, as plain text, ending with the candidate's name.`,
+    system: `You write a cover letter for one job posting on behalf of the candidate, in the first person.
+Structure, in this order, 300-420 words of body:
+1. Opening (2 sentences): why this role at this company, and a one-line functional summary. No filler openers.
+2. Profile paragraph: years of experience, current or most recent role, domain, taken from the profile.
+3. Four or five achievement bullets, each "Bold lead phrase, one sentence of impact with a number", chosen for the posting's top three or four requirements. Use markdown bold for the lead phrase. Exact facts from the profile only.
+4. Problems I will solve (2-3 sentences): what in the posting you would take on first and how. Specific to this company, never generic.
+5. Close (1-2 sentences): availability and a plain sign-off with the candidate's name.
+Self-check: delete any sentence that could appear in a letter to any other company.
+${WRITING_RULES}
+Output only the letter as plain text with markdown bold in the bullets. No subject line, no commentary.`,
     ask: 'Write the cover letter now.',
     maxTokens: 900,
   },
   cold_email: {
-    system: `You write a cold email from the candidate to the hiring manager or recruiter for one job posting.
-Rules: under 110 words, a specific subject line on the first line as "Subject: ...", then the email. Name one concrete thing from the posting and one matching fact from the profile. One clear ask. No flattery. Output only the email, ending with the candidate's name.`,
+    system: `You write a cold application email from the candidate to the hiring manager or recruiter for one job posting.
+First line: "Subject: ..." naming the role (and requisition id if the posting shows one). Then 120-180 words:
+1. Greeting (name if the posting gives one, otherwise the team).
+2. Value first: one sentence on what you would bring to this role, not "I am looking for a job".
+3. Two proof points tied to the posting, each with a tool, system or number from the profile.
+4. One specific ask: a short call, the right contact, or permission to send the resume.
+5. Sign-off with the candidate's name and email.
+${WRITING_RULES}
+Output only the email.`,
     ask: 'Write the cold email now.',
     maxTokens: 500,
   },
@@ -521,7 +549,7 @@ export interface BaseResume {
 
 const TEX_TEMPLATE_PROMPT = `You rewrite a candidate's existing LaTeX resume for one specific job posting.
 Keep the document's preamble, packages, macros, fonts and overall structure EXACTLY as given; change only the content: reorder, select and reword sections and bullets so the most relevant experience leads, and tighten wording toward what the posting asks for.
-Rules: use ONLY facts already in the resume and the candidate profile; never invent employers, dates, titles, metrics or skills. Do not add packages or new macros. Keep it to the same number of pages. Output the complete LaTeX document from \\documentclass to \\end{document}, nothing else, no code fences.`;
+Keyword strategy: extract the posting's 15-20 key terms and mirror that vocabulary in the summary and the first bullet of each role, rewording existing achievements only.\n${WRITING_RULES}\nDo not add packages or new macros. Keep it to the same number of pages. Output the complete LaTeX document from \\documentclass to \\end{document}, nothing else, no code fences.`;
 
 export async function generateMaterial(
   kind: MaterialKind,
