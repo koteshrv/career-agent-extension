@@ -20,3 +20,7 @@ test('wrapResume produces one complete document on the fixed preamble', () => {
   assert.ok(isFullDocument(tex));
   assert.ok(!isFullDocument('\\section{Summary}'));
 });
+
+test('lowercase macro spellings from the model are accepted by the preamble', () => {
+  for (const alias of ['resumesubheading', 'resumeitem', 'resumesubheadingliststart', 'resumeitemlistend']) assert.ok(RESUME_PREAMBLE.includes(`\\let\\${alias}\\`), alias);
+});

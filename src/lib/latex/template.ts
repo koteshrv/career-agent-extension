@@ -8,7 +8,7 @@ export const RESUME_MACROS = `\\resumeSubheading{Title}{Dates}{Company}{Location
 \\resumeProjectHeading{\\textbf{Name} $|$ \\emph{Stack}}{Dates}
 \\section{Experience} etc. for section titles`;
 
-export const RESUME_PREAMBLE = String.raw`\documentclass[letterpaper,10.5pt]{article}
+export const RESUME_PREAMBLE = String.raw`\documentclass[letterpaper,11pt]{article}
 \usepackage[empty]{fullpage}
 \usepackage{titlesec}
 \usepackage[usenames,dvipsnames]{color}
@@ -50,6 +50,15 @@ export const RESUME_PREAMBLE = String.raw`\documentclass[letterpaper,10.5pt]{art
 \newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
 \newcommand{\resumeItemListStart}{\begin{itemize}}
 \newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+% Models often lowercase macro names; accept those spellings too.
+\let\resumeitem\resumeItem
+\let\resumesubheading\resumeSubheading
+\let\resumeprojectheading\resumeProjectHeading
+\let\resumesubitem\resumeSubItem
+\let\resumesubheadingliststart\resumeSubHeadingListStart
+\let\resumesubheadinglistend\resumeSubHeadingListEnd
+\let\resumeitemliststart\resumeItemListStart
+\let\resumeitemlistend\resumeItemListEnd
 `;
 
 const FORBIDDEN = /\\(write18|openout|openin|input|include|usepackage|documentclass|RequirePackage|catcode|csname|def\b|let\b)/g;
@@ -65,6 +74,13 @@ export function resumeBodyFromModel(raw: string): string {
 
 export function wrapResume(body: string): string {
   return `${RESUME_PREAMBLE}\n\\begin{document}\n${body}\n\\end{document}\n`;
+}
+
+const SHELL = /\\(write18|openout|openin)\b/g;
+
+/** A whole document the user or model supplied (their own template): fences off, shell escapes out, nothing else touched. */
+export function sanitizeDocument(raw: string): string {
+  return raw.replace(/^```(?:latex|tex)?\s*/i, '').replace(/```\s*$/, '').replace(SHELL, '').trim();
 }
 
 /** True when the text is already a complete document we assembled (or the user edited) rather than a bare body. */

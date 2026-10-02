@@ -11,9 +11,14 @@ import {
   getSettings,
   saveResume,
   getResume,
+  listResumes,
+  listResumeMetas,
+  addResume,
+  removeResume,
+  setUploadResume,
 } from './storage';
 import { parseResume, generateMaterial, type MaterialKind } from './ai';
-import { resumeBodyFromModel, wrapResume, isFullDocument } from './latex/template';
+import { resumeBodyFromModel, wrapResume, isFullDocument, sanitizeDocument } from './latex/template';
 import { compileLatexInOffscreen } from './latex/compile';
 import { sanitizeProfile, sanitizeApplication, str } from './sanitize';
 export { sanitizeProfile, sanitizeApplication } from './sanitize';
@@ -32,7 +37,11 @@ export type ExternalRequest =
   | { action: 'parse_resume'; payload: { fileName?: unknown; fileData?: unknown } }
   | { action: 'save_resume'; payload: { name?: unknown; type?: unknown; data?: unknown } }
   | { action: 'get_resume_meta' }
-  | { action: 'generate_material'; payload: { kind?: unknown; job?: { title?: unknown; company?: unknown; description?: unknown } } }
+  | { action: 'generate_material'; payload: { kind?: unknown; baseResumeId?: unknown; job?: { title?: unknown; company?: unknown; description?: unknown } } }
+  | { action: 'list_resumes' }
+  | { action: 'add_resume'; payload: { name?: unknown; kind?: unknown; data?: unknown; text?: unknown } }
+  | { action: 'delete_resume'; payload: { id?: unknown } }
+  | { action: 'set_upload_resume'; payload: { id?: unknown } }
   | { action: 'compile_latex'; payload: { tex?: unknown } };
 
 const FALLBACK_PATTERNS = ['https://careeragent.fyi/*', 'https://*.careeragent.fyi/*'];
@@ -101,6 +110,33 @@ export async function handleExternal(msg: ExternalRequest): Promise<unknown> {
       await saveResume({ name, type: 'application/pdf', size: Math.floor((data.length * 3) / 4), data, updatedAt: new Date().toISOString() });
       return { saved: true };
     }
+    case 'list_resumes':
+      return listResumeMetas();
+    case 'add_resume': {
+      const name = str(msg.payload?.name, 256) || 'resume';
+      const kind = str(msg.payload?.kind, 4);
+      if (kind === 'pdf') {
+        const data = msg.payload?.data;
+        if (typeof data !== 'string' || !data || data.length > MAX_PDF_B64 || !/^[A-Za-z0-9+/=\s]+$/.test(data.slice(0, 2048))) {
+          throw new BridgeError('BAD_PAYLOAD', 'data must be a base64 PDF under 5 MB');
+        }
+        return addResume({ name, type: 'application/pdf', kind, size: Math.floor((data.length * 3) / 4), data, updatedAt: new Date().toISOString() });
+      }
+      if (kind !== 'tex' && kind !== 'md' && kind !== 'txt') throw new BridgeError('BAD_PAYLOAD', 'kind must be pdf, tex, md or txt');
+      const text = str(msg.payload?.text, 400_000);
+      if (!text) throw new BridgeError('BAD_PAYLOAD', 'text is required for a text resume');
+      return addResume({ name, type: 'text/plain', kind, size: text.length, data: '', text, updatedAt: new Date().toISOString() });
+    }
+    case 'delete_resume': {
+      const id = str(msg.payload?.id, 64);
+      if (!id) throw new BridgeError('BAD_PAYLOAD', 'id is required');
+      return removeResume(id);
+    }
+    case 'set_upload_resume': {
+      const id = str(msg.payload?.id, 64);
+      if (!id) throw new BridgeError('BAD_PAYLOAD', 'id is required');
+      return setUploadResume(id);
+    }
     case 'save_profile':
       await saveProfile(sanitizeProfile(msg.payload));
       return { saved: true };
@@ -145,18 +181,21 @@ export async function handleExternal(msg: ExternalRequest): Promise<unknown> {
       const settings = await getSettings();
       if (!settings.aiApiKey.trim()) throw new BridgeError('NO_API_KEY', 'AI API Key not configured. Open the CareerAgent extension → Settings to add your key.');
       const started = Date.now();
-      const raw = await generateMaterial(kind, job, await getProfile(), settings.aiProvider, settings.aiApiKey, settings.aiModel);
+      const baseId = str(msg.payload?.baseResumeId, 64);
+      const baseStored = baseId ? (await listResumes()).find((r) => r.id === baseId && r.text) : undefined;
+      const base = baseStored && baseStored.kind && baseStored.kind !== 'pdf' ? { kind: baseStored.kind, name: baseStored.name, text: baseStored.text! } : undefined;
+      const raw = await generateMaterial(kind, job, await getProfile(), settings.aiProvider, settings.aiApiKey, settings.aiModel, base);
       const meta = { provider: settings.aiProvider, model: settings.aiModel, durationMs: Date.now() - started };
       if (kind !== 'resume') return { text: raw, meta };
-      // The model writes the body; the preamble is ours. Compile here so the dashboard gets a real PDF.
-      const tex = wrapResume(resumeBodyFromModel(raw));
+      // Our template: the model writes the body and the preamble is ours. The user's own .tex: the model returns the whole document.
+      const tex = base?.kind === 'tex' ? sanitizeDocument(raw) : wrapResume(resumeBodyFromModel(raw));
       const compiled = await compileLatexInOffscreen(tex);
       return { text: tex, pdf: compiled.pdf, log: compiled.pdf ? undefined : compiled.log, meta: { ...meta, durationMs: Date.now() - started } };
     }
     case 'compile_latex': {
       const tex = str(msg.payload?.tex, 200_000);
       if (!tex) throw new BridgeError('BAD_PAYLOAD', 'tex is required');
-      const compiled = await compileLatexInOffscreen(isFullDocument(tex) ? tex : wrapResume(resumeBodyFromModel(tex)));
+      const compiled = await compileLatexInOffscreen(isFullDocument(tex) ? sanitizeDocument(tex) : wrapResume(resumeBodyFromModel(tex)));
       return { pdf: compiled.pdf, log: compiled.pdf ? undefined : compiled.log };
     }
     default:

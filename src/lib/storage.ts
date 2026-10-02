@@ -5,6 +5,7 @@ import {
   ApplicationStatus,
   SavedAnswer,
   StoredResume,
+  ResumeMeta,
 } from '../types';
 import { normalizeQuestion } from './answers';
 export { normalizeQuestion, findSavedAnswer } from './answers';
@@ -42,6 +43,7 @@ const KEYS = {
   theme: 'careeragent_theme',
   answers: 'careeragent_answers',
   resume: 'careeragent_resume',
+  resumes: 'careeragent_resumes',
 } as const;
 const LEGACY_SYNCED_PROFILE_KEY = 'careeragent_synced_profile';
 
@@ -265,16 +267,67 @@ export async function deleteAnswer(question: string): Promise<void> {
 }
 
 // ==========================================
-// Resume file
-// ==========================================
+// Resumes. Several can be stored (PDF for uploads, .tex/.md/.txt as drafting bases); KEYS.resume mirrors the one
+// PDF flagged for uploads so autofill and the popup keep reading a single file.
+function resumeMeta(r: StoredResume): ResumeMeta {
+  return { id: r.id ?? 'legacy', name: r.name, kind: r.kind ?? 'pdf', size: r.size, updatedAt: r.updatedAt, forUploads: Boolean(r.forUploads) };
+}
+
+export async function listResumes(): Promise<StoredResume[]> {
+  const list = await getStorageItem<StoredResume[]>(KEYS.resumes, []);
+  if (list.length > 0) return list;
+  const legacy = await getStorageItem<StoredResume | null>(KEYS.resume, null);
+  if (!legacy) return [];
+  const migrated: StoredResume = { ...legacy, id: 'legacy', kind: 'pdf', forUploads: true };
+  await setStorageItem(KEYS.resumes, [migrated]);
+  return [migrated];
+}
+
+export async function listResumeMetas(): Promise<ResumeMeta[]> {
+  return (await listResumes()).map(resumeMeta);
+}
+
+async function writeResumes(list: StoredResume[]): Promise<ResumeMeta[]> {
+  await setStorageItem(KEYS.resumes, list);
+  await setStorageItem(KEYS.resume, list.find((r) => r.forUploads && (r.kind ?? 'pdf') === 'pdf') ?? null);
+  return list.map(resumeMeta);
+}
+
+export async function addResume(resume: StoredResume): Promise<ResumeMeta[]> {
+  const id = resume.id ?? `r_${Date.now().toString(36)}`;
+  const kind = resume.kind ?? 'pdf';
+  const others = (await listResumes()).filter((r) => r.id !== id);
+  const forUploads = kind === 'pdf' && (resume.forUploads || !others.some((r) => r.forUploads));
+  if (forUploads) for (const r of others) r.forUploads = false;
+  return writeResumes([{ ...resume, id, kind, forUploads }, ...others]);
+}
+
+export async function removeResume(id: string): Promise<ResumeMeta[]> {
+  return writeResumes((await listResumes()).filter((r) => r.id !== id));
+}
+
+export async function setUploadResume(id: string): Promise<ResumeMeta[]> {
+  const list = await listResumes();
+  if (!list.some((r) => r.id === id && (r.kind ?? 'pdf') === 'pdf')) throw new Error('Only a PDF can be attached to applications.');
+  for (const r of list) r.forUploads = r.id === id;
+  return writeResumes(list);
+}
+
+/** The PDF autofill attaches. */
 export async function getResume(): Promise<StoredResume | null> {
   return await getStorageItem<StoredResume | null>(KEYS.resume, null);
 }
 
+/** Replace (or clear) the upload PDF. Kept for the popup and the save_resume bridge action. */
 export async function saveResume(resume: StoredResume | null): Promise<void> {
-  await setStorageItem(KEYS.resume, resume);
+  if (!resume) {
+    const current = await getResume();
+    if (current?.id) await removeResume(current.id);
+    else await setStorageItem(KEYS.resume, null);
+    return;
+  }
+  await addResume({ ...resume, kind: 'pdf', forUploads: true });
 }
-
 // ==========================================
 // Theme Storage
 // ==========================================

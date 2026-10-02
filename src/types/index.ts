@@ -133,12 +133,28 @@ export interface SavedAnswer {
 }
 
 /** The resume file the extension attaches to file inputs during autofill. */
+export type ResumeKind = 'pdf' | 'tex' | 'md' | 'txt';
+
 export interface StoredResume {
+  id?: string;
   name: string;
   type: string;
   size: number;
-  data: string; // base64
+  data: string; // base64 for PDFs, empty for text formats
+  text?: string; // the source for tex/md/txt resumes
+  kind?: ResumeKind;
+  /** The PDF autofill attaches when a form asks for a resume. At most one. */
+  forUploads?: boolean;
   updatedAt: string;
+}
+
+export interface ResumeMeta {
+  id: string;
+  name: string;
+  kind: ResumeKind;
+  size: number;
+  updatedAt: string;
+  forUploads: boolean;
 }
 
 export interface CompanySignal {
