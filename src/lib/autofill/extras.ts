@@ -1,3 +1,4 @@
+import { markFilled } from './report';
 import { setNativeValue } from './helpers';
 import { detectQuestionText } from './questions';
 import { findSavedAnswer } from '../answers';
@@ -49,6 +50,7 @@ export function attachResume(doc: Document, resume: StoredResume | null | undefi
     target.files = dt.files;
     target.dispatchEvent(new win.Event('input', { bubbles: true }));
     target.dispatchEvent(new win.Event('change', { bubbles: true }));
+    markFilled(target);
     return true;
   } catch {
     return false;

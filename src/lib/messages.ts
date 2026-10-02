@@ -12,7 +12,9 @@ export type Msg =
   | { type: 'APPLICATION_SUBMITTED'; job: JobDetails }
   | { type: 'COMPANY_SIGNAL'; company: string }
   | { type: 'RUN_AUTOFILL_ON_ACTIVE_TAB' }
-  | { type: 'COMPILE_LATEX'; tex: string };
+  | { type: 'COMPILE_LATEX'; tex: string }
+  | { type: 'SAVE_JOB'; job: JobDetails }
+  | { type: 'GET_UPLOAD_RESUME' };
 
 export type CompanySignalResult = CompanySignal | null;
 

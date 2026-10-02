@@ -3,6 +3,7 @@ import { extractJobDetails } from '../src/lib/extractors';
 import { executeAutofill } from '../src/lib/autofill';
 import { matchSkills } from '../src/lib/autofill/extras';
 import { initInlineAIHelper } from '../src/lib/inline';
+import { initPanel } from '../src/lib/inline/panel';
 import { listen, request } from '../src/lib/messages';
 import type { JobDetails } from '../src/types';
 
@@ -12,7 +13,7 @@ declare global {
   }
 }
 
-const MARK = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#0f1419"/><rect x="6" y="6.5" width="12" height="2.6" rx="1.3" fill="#f5f6f8"/><rect x="6" y="10.7" width="7" height="2.6" rx="1.3" fill="#f5f6f8"/><rect x="14.6" y="10.2" width="3.6" height="3.6" rx="1" fill="#39a7cb"/><rect x="6" y="14.9" width="12" height="2.6" rx="1.3" fill="#f5f6f8"/></svg>`;
+const MARK = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6.5" fill="#171717"/><path d="M7.5 12.5 12 8l4.5 4.5M7.5 17.5 12 13l4.5 4.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 function showToast(text: string) {
   const host = document.createElement('div');
@@ -73,6 +74,7 @@ export default defineContentScript({
     try {
       initInlineAIHelper(getJob);
       initSubmitWatch(getJob);
+      initPanel(getJob);
     } catch (e) {
       console.warn('[CareerAgent] Failed to initialize page helpers:', e);
     }

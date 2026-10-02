@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { JobDetails, TrackedApplication, ExtensionView, ExtensionSettings, ApplicationStatus, CandidateProfile, StoredResume, CompanySignal, AutofillResult } from '../../src/types';
+import { JobDetails, TrackedApplication, ExtensionView, ExtensionSettings, ApplicationStatus, CandidateProfile, StoredResume, CompanySignal, AutofillResult, FillReport } from '../../src/types';
 import { getSettings, getProfile, getApplications, getResume, addApplication, updateApplicationStatus, deleteApplication, saveApplications, getTheme, DEFAULT_SETTINGS, DEFAULT_PROFILE } from '../../src/lib/storage';
 import { request, requestTab, BridgeError } from '../../src/lib/messages';
 import { dueFollowUps } from '../../src/lib/followups';
@@ -21,7 +21,7 @@ export const App: React.FC = () => {
   const [scanning, setScanning] = useState(true);
   const [skills, setSkills] = useState<{ matched: string[]; missing: string[] } | null>(null);
   const [signal, setSignal] = useState<CompanySignal | null>(null);
-  const [autofill, setAutofill] = useState<{ busy: boolean; message: string | null; tone: 'success' | 'error' | 'idle' }>({ busy: false, message: null, tone: 'idle' });
+  const [autofill, setAutofill] = useState<{ busy: boolean; message: string | null; tone: 'success' | 'error' | 'idle'; report?: FillReport }>({ busy: false, message: null, tone: 'idle' });
 
   // Theme follows the stored preference, else the system, like the dashboard.
   useEffect(() => {
@@ -116,7 +116,7 @@ export const App: React.FC = () => {
     setAutofill({ busy: true, message: null, tone: 'idle' });
     try {
       const r = await request<AutofillResult & { tracked?: boolean }>({ type: 'RUN_AUTOFILL_ON_ACTIVE_TAB' }, 30_000);
-      setAutofill({ busy: false, message: r.success ? `${r.message}${r.tracked ? ' Added to your pipeline as Applied.' : ''}` : r.message, tone: r.success ? 'success' : 'error' });
+      setAutofill({ busy: false, message: r.success ? `${r.message}${r.tracked ? ' Added to your pipeline as Applied.' : ''}` : r.message, tone: r.success ? 'success' : 'error', report: r.report });
       if (r.tracked) await refreshApps();
     } catch (e: unknown) {
       setAutofill({ busy: false, message: e instanceof BridgeError ? e.message : 'Autofill failed. Reload the page and try again.', tone: 'error' });

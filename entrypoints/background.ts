@@ -129,6 +129,16 @@ export default defineBackground(() => {
       return { tracked: true };
     },
     COMPANY_SIGNAL: async ({ company }) => companySignal(String(company ?? '')),
+    SAVE_JOB: async ({ job }) => {
+      if (!job?.title) throw new BridgeError('BAD_PAYLOAD', 'No posting details on this page');
+      const settings = await getSettings();
+      await addApplication({ title: job.title, company: job.company, location: job.location, url: job.url, atsProvider: job.atsType, status: 'SAVED', followUpDays: settings.followUpDays });
+      return { saved: true };
+    },
+    GET_UPLOAD_RESUME: async () => {
+      const r = await getResume();
+      return r ? { name: r.name } : null;
+    },
     RUN_AUTOFILL_ON_ACTIVE_TAB: () => runAutofillOnActiveTab(),
   });
 

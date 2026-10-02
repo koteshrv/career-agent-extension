@@ -1,3 +1,4 @@
+import { markFilled } from './report';
 /**
  * Safely create and dispatch an Event in the realm/window of the target element.
  * Works seamlessly across iframes, embedded widgets, and JSDOM test suites.
@@ -45,6 +46,7 @@ export function setNativeValue(
   dispatchNativeEvent(element, 'input');
   dispatchNativeEvent(element, 'change');
   dispatchNativeEvent(element, 'blur');
+  markFilled(element);
 }
 
 /**
@@ -64,6 +66,7 @@ export function setNativeSelect(
 
       dispatchNativeEvent(select, 'input');
       dispatchNativeEvent(select, 'change');
+      markFilled(select);
       return true;
     }
   }
@@ -97,6 +100,7 @@ export function checkMatchingRadio(
 
     if (pattern.test(labelText) || pattern.test(valText)) {
       radio.checked = true;
+      markFilled(radio);
       dispatchNativeEvent(radio, 'click');
       dispatchNativeEvent(radio, 'change');
       return true;

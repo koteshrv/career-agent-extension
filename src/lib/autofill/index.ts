@@ -1,5 +1,6 @@
 import { CandidateProfile, AutofillResult, SavedAnswer, StoredResume } from '../../types';
 import { fillSavedAnswers, attachResume } from './extras';
+import { clearMarks, buildFillReport } from './report';
 import { isGreenhousePage } from '../extractors/greenhouse';
 import { isLeverPage } from '../extractors/lever';
 import { isAshbyPage } from '../extractors/ashby';
@@ -22,6 +23,7 @@ export function executeAutofill(
   doc: Document = document,
   extras: AutofillExtras = {}
 ): AutofillResult {
+  clearMarks(doc);
   const base = isGreenhousePage(url, doc)
     ? autofillGreenhouse(profile, doc)
     : isLeverPage(url, doc)
@@ -38,14 +40,16 @@ export function executeAutofill(
   for (const q of answered) details[q.slice(0, 60)] = 'Saved answer';
   if (attached) details['Resume'] = extras.resume?.name || 'attached';
 
+  const report = buildFillReport(doc);
   return {
     ...base,
     success: fieldsFilled > 0,
     fieldsFilled,
     details,
+    report,
     message:
       fieldsFilled > 0
-        ? `Filled ${fieldsFilled} ${fieldsFilled === 1 ? 'field' : 'fields'}${answered.length ? `, ${answered.length} from saved answers` : ''}${attached ? ', resume attached' : ''}.`
+        ? `Filled ${fieldsFilled} ${fieldsFilled === 1 ? 'field' : 'fields'}${answered.length ? `, ${answered.length} from saved answers` : ''}${attached ? ', resume attached' : ''}.${report.empty.length ? ` ${report.empty.length} required ${report.empty.length === 1 ? 'field is' : 'fields are'} still empty.` : ''}`
         : base.message,
   };
 }

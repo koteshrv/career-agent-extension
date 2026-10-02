@@ -98,12 +98,20 @@ export interface TrackedApplication {
   updatedAt: string; // ISO, last-write-wins clock for sync
 }
 
+export interface FillReport {
+  /** Fields autofill set, with the label it read and the value it wrote. */
+  filled: Array<{ label: string; value: string }>;
+  /** Required fields that are still empty after the run. */
+  empty: string[];
+}
+
 export interface AutofillResult {
   success: boolean;
   fieldsFilled: number;
   atsType: ATSType;
   message: string;
   details?: Record<string, string>;
+  report?: FillReport;
 }
 
 export type AIProvider = 'gemini' | 'openai' | 'anthropic' | 'groq';

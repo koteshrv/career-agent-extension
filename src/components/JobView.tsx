@@ -1,6 +1,6 @@
 import React from 'react';
 import { RefreshCw, ExternalLink, Bookmark, Zap, Sparkles, Keyboard } from 'lucide-react';
-import { JobDetails, TrackedApplication, ApplicationStatus, ExtensionSettings, CompanySignal } from '../types';
+import { JobDetails, TrackedApplication, ApplicationStatus, ExtensionSettings, CompanySignal, FillReport } from '../types';
 import { CompanyLogo } from './CompanyLogo';
 import { Button, Chip, Empty, IconButton } from './ui';
 import { STATUS_LABELS } from '../lib/status';
@@ -13,7 +13,7 @@ interface JobViewProps {
   onSave: () => Promise<void>;
   onStatusChange: (status: ApplicationStatus) => Promise<void>;
   onAutofill: () => Promise<void>;
-  autofill: { busy: boolean; message: string | null; tone: 'success' | 'error' | 'idle' };
+  autofill: { busy: boolean; message: string | null; tone: 'success' | 'error' | 'idle'; report?: FillReport };
   skills: { matched: string[]; missing: string[] } | null;
   signal: CompanySignal | null;
   settings: ExtensionSettings;
@@ -114,9 +114,26 @@ export const JobView: React.FC<JobViewProps> = ({ job, loading, onRescan, tracke
           {autofill.busy ? 'Filling the form' : 'Autofill this application'}
         </Button>
         {autofill.message && (
-          <p role="status" className={`rounded-sm border px-2.5 py-2 text-xs ${autofill.tone === 'success' ? 'border-transparent bg-[#d9f7e6] text-foreground dark:bg-[#0f2a1c]' : 'border-destructive/30 bg-destructive/10 text-destructive'}`}>
-            {autofill.message}
-          </p>
+          <div role="status" className={`rounded-sm border px-2.5 py-2 text-xs ${autofill.tone === 'success' ? 'border-transparent bg-[#dff5e8] text-foreground dark:bg-[#163526]' : 'border-destructive/30 bg-destructive/10 text-destructive'}`}>
+            <p>{autofill.message}</p>
+            {autofill.report && autofill.report.empty.length > 0 && (
+              <ul className="mt-1.5 list-disc pl-4 text-[11px] text-amber-700 dark:text-amber-400">
+                {autofill.report.empty.slice(0, 8).map((e) => (
+                  <li key={e}>{e}</li>
+                ))}
+              </ul>
+            )}
+            {autofill.report && autofill.report.filled.length > 0 && (
+              <details className="mt-1.5 text-[11px] text-muted-foreground">
+                <summary className="cursor-pointer">What was filled</summary>
+                <ul className="mt-1 list-disc pl-4">
+                  {autofill.report.filled.map((f, i) => (
+                    <li key={i}>{f.label}: {f.value}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
         )}
 
         {tracked ? (
