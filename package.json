@@ -1,6 +1,6 @@
 {
   "name": "career-agent-extension",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Cross-browser extension powering 1-click ATS application autofill and automatic application tracking for CareerAgent",
   "type": "module",
   "scripts": {
