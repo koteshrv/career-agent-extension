@@ -6,6 +6,7 @@ import {
   SavedAnswer,
   StoredResume,
   ResumeMeta,
+  AIOperation,
 } from '../types';
 import { normalizeQuestion } from './answers';
 export { normalizeQuestion, findSavedAnswer } from './answers';
@@ -115,6 +116,70 @@ export async function getSettings(): Promise<ExtensionSettings> {
     resolved.aiModel = 'gemini-3.5-flash-lite';
   }
   return resolved;
+}
+
+/** The model to use for one operation: its override when set, else the default. */
+export function modelFor(settings: ExtensionSettings, op: AIOperation): string {
+  return settings.aiModels?.[op]?.trim() || settings.aiModel;
+}
+
+export interface ExportBundle {
+  format: 'careeragent-export';
+  version: 1;
+  exportedAt: string;
+  profile: CandidateProfile;
+  applications: TrackedApplication[];
+  answers: Record<string, SavedAnswer>;
+  resumes: StoredResume[];
+  /** API key is never exported. */
+  settings: Omit<ExtensionSettings, 'aiApiKey'>;
+}
+
+export async function exportAll(): Promise<ExportBundle> {
+  const [profile, applications, answers, resumes, settings] = await Promise.all([getProfile(), getApplications(), getAnswers(), listResumes(), getSettings()]);
+  const { aiApiKey: _omit, ...rest } = settings;
+  void _omit;
+  return { format: 'careeragent-export', version: 1, exportedAt: new Date().toISOString(), profile, applications, answers, resumes, settings: rest };
+}
+
+/** Replace mode overwrites each section the bundle carries; merge mode keeps local records and adds the bundle's. */
+export async function importAll(bundle: ExportBundle, mode: 'replace' | 'merge'): Promise<{ applications: number; resumes: number; answers: number }> {
+  if (bundle?.format !== 'careeragent-export') throw new Error('Not a CareerAgent export file.');
+  if (bundle.profile) {
+    const current = await getProfile();
+    await saveProfile(mode === 'replace' ? bundle.profile : { ...current, ...bundle.profile });
+  }
+  let applications = 0;
+  if (Array.isArray(bundle.applications)) {
+    const incoming = bundle.applications;
+    if (mode === 'replace') await saveApplications(incoming);
+    else {
+      const current = await getApplications();
+      const ids = new Set(current.map((a) => a.id));
+      await saveApplications([...current, ...incoming.filter((a) => !ids.has(a.id))]);
+    }
+    applications = incoming.length;
+  }
+  let answers = 0;
+  if (bundle.answers && typeof bundle.answers === 'object') {
+    const current = mode === 'replace' ? {} : await getAnswers();
+    await setStorageItem(KEYS.answers, { ...current, ...bundle.answers });
+    answers = Object.keys(bundle.answers).length;
+  }
+  let resumes = 0;
+  if (Array.isArray(bundle.resumes)) {
+    const current = mode === 'replace' ? [] : await listResumes();
+    const ids = new Set(current.map((r) => r.id));
+    const merged = [...bundle.resumes.filter((r) => !ids.has(r.id)), ...current];
+    await setStorageItem(KEYS.resumes, merged);
+    await setStorageItem(KEYS.resume, merged.find((r) => r.forUploads && (r.kind ?? 'pdf') === 'pdf') ?? null);
+    resumes = bundle.resumes.length;
+  }
+  if (bundle.settings) {
+    const current = await getSettings();
+    await saveSettings({ ...current, ...bundle.settings, aiApiKey: current.aiApiKey });
+  }
+  return { applications, resumes, answers };
 }
 
 export async function saveSettings(settings: ExtensionSettings): Promise<void> {

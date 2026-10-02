@@ -21,7 +21,7 @@ function showToast(text: string) {
   const shadow = host.attachShadow({ mode: 'open' });
   shadow.innerHTML = `
     <style>
-      .t { display:flex; align-items:center; gap:10px; background:#161a20; color:#e6e9ee; border:1px solid #262b33; border-radius:10px; padding:10px 14px; font: 500 13px/1.3 'Google Sans', system-ui, sans-serif; box-shadow: 0 12px 32px -8px rgba(15,20,25,.4); max-width: 320px; }
+      .t { display:flex; align-items:center; gap:10px; background:#161a20; color:#e6e9ee; border:1px solid #262b33; border-radius:10px; padding:10px 14px; font: 500 13px/1.3 'Google Sans Variable', 'Google Sans', system-ui, sans-serif; box-shadow: 0 12px 32px -8px rgba(15,20,25,.4); max-width: 320px; }
       .t span { color:#8c94a1; font-weight:400; display:block; margin-top:2px; }
     </style>
     <div class="t">${MARK}<div>Added to your pipeline<span></span></div></div>`;
@@ -71,10 +71,14 @@ export default defineContentScript({
 
     const getJob = () => extractJobDetails(window.location.href, document);
 
+    // The dashboard is ours: no helper icons, panel or submit watch there, only the message listeners.
+    const isDashboard = /(^|\.)careeragent\.fyi$/.test(location.hostname) || location.hostname === 'localhost';
     try {
-      initInlineAIHelper(getJob);
-      initSubmitWatch(getJob);
-      initPanel(getJob);
+      if (!isDashboard) {
+        initInlineAIHelper(getJob);
+        initSubmitWatch(getJob);
+        initPanel(getJob);
+      }
     } catch (e) {
       console.warn('[CareerAgent] Failed to initialize page helpers:', e);
     }

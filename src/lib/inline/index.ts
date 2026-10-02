@@ -4,15 +4,7 @@ import { request, BridgeError } from '../messages';
 import { detectQuestionText } from '../autofill/questions';
 import type { SavedAnswer } from '../../types';
 
-const MARK_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="display:block; flex-shrink:0;">
-  <rect width="24" height="24" rx="6" fill="#0f1419"/>
-  <rect x="6" y="6.5" width="12" height="2.6" rx="1.3" fill="#f5f6f8"/>
-  <rect x="6" y="10.7" width="7" height="2.6" rx="1.3" fill="#f5f6f8"/>
-  <rect x="14.6" y="10.2" width="3.6" height="3.6" rx="1" fill="#39a7cb"/>
-  <rect x="6" y="14.9" width="12" height="2.6" rx="1.3" fill="#f5f6f8"/>
-</svg>
-`;
+const MARK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="display:block; flex-shrink:0;"><rect width="24" height="24" rx="6.5" fill="#171717"/><path d="M7.5 12.5 12 8l4.5 4.5M7.5 17.5 12 13l4.5 4.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 /**
  * Injects the CareerAgent inline AI Orbit logo into an individual textarea
@@ -115,13 +107,13 @@ function openAIModal(
 
   const style = document.createElement('style');
   style.textContent = `
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Google Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Google Sans Variable', 'Google Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     .card {
       width: 500px;
       max-width: 92vw;
-      background: #161a20;
-      color: #e6e9ee;
-      border: 1px solid #262b33;
+      background: #121212;
+      color: #ededed;
+      border: 1px solid #2a2a2a;
       border-radius: 14px;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
       overflow: hidden;
@@ -136,8 +128,8 @@ function openAIModal(
       align-items: center;
       justify-content: space-between;
       padding: 12px 16px;
-      border-bottom: 1px solid #262b33;
-      background: #0f1115;
+      border-bottom: 1px solid #2a2a2a;
+      background: #1a1a1a;
     }
     .brand {
       display: flex;
@@ -145,22 +137,22 @@ function openAIModal(
       gap: 8px;
       font-size: 13px;
       font-weight: 700;
-      color: #e6e9ee;
+      color: #ededed;
     }
-    .brand-highlight { color: #39a7cb; font-weight: 600; }
+    .brand-highlight { color: #ededed; font-weight: 600; }
     .badge {
       font-size: 10px;
       padding: 2px 7px;
       border-radius: 6px;
-      background: #1c2128;
-      color: #8c94a1;
-      border: 1px solid #262b33;
+      background: #262626;
+      color: #8f8f8f;
+      border: 1px solid #2a2a2a;
       font-weight: 500;
     }
     .close-btn {
       background: transparent;
       border: 1px solid transparent;
-      color: #8c94a1;
+      color: #8f8f8f;
       cursor: pointer;
       font-size: 14px;
       width: 26px;
@@ -171,7 +163,7 @@ function openAIModal(
       justify-content: center;
       transition: all 0.15s ease;
     }
-    .close-btn:hover { color: #e6e9ee; background: #1c2128; border-color: #262b33; }
+    .close-btn:hover { color: #ededed; background: #262626; border-color: #2a2a2a; }
     .body {
       padding: 16px;
       display: flex;
@@ -179,11 +171,11 @@ function openAIModal(
       gap: 12px;
     }
     .question-box {
-      background: #1c2128;
+      background: #262626;
       padding: 10px 12px;
       border-radius: 8px;
-      border: 1px solid #262b33;
-      border-left: 3px solid #39a7cb;
+      border: 1px solid #2a2a2a;
+      border-left: 3px solid #ededed;
     }
     .question-title {
       font-size: 10px;
@@ -196,23 +188,23 @@ function openAIModal(
     .question-text {
       font-size: 12px;
       font-weight: 500;
-      color: #e6e9ee;
+      color: #ededed;
       line-height: 1.4;
     }
     .textarea-preview {
       width: 100%;
       height: 140px;
-      background: #0f1115;
-      border: 1px solid #262b33;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
       border-radius: 8px;
-      color: #e6e9ee;
+      color: #ededed;
       padding: 10px 12px;
       font-size: 12px;
       line-height: 1.5;
       resize: vertical;
       outline: none;
     }
-    .textarea-preview:focus { border-color: #39a7cb; }
+    .textarea-preview:focus { border-color: #ededed; }
     .loading-state {
       height: 140px;
       display: flex;
@@ -220,17 +212,17 @@ function openAIModal(
       align-items: center;
       justify-content: center;
       gap: 8px;
-      background: #0f1115;
-      border: 1px dashed #262b33;
+      background: #1a1a1a;
+      border: 1px dashed #2a2a2a;
       border-radius: 8px;
-      color: #8c94a1;
+      color: #8f8f8f;
       font-size: 12px;
     }
     .spinner {
       width: 20px;
       height: 20px;
-      border: 2px solid #1c2128;
-      border-top-color: #39a7cb;
+      border: 2px solid #262626;
+      border-top-color: #ededed;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
@@ -249,12 +241,12 @@ function openAIModal(
       align-items: center;
       justify-content: space-between;
       padding: 12px 16px;
-      border-top: 1px solid #262b33;
-      background: #0f1115;
+      border-top: 1px solid #2a2a2a;
+      background: #1a1a1a;
     }
     .token-notice {
       font-size: 10px;
-      color: #8c94a1;
+      color: #8f8f8f;
     }
     .actions {
       display: flex;
@@ -271,13 +263,13 @@ function openAIModal(
       transition: all 0.15s ease;
     }
     .btn-secondary {
-      background: #1c2128;
-      border: 1px solid #262b33;
-      color: #e6e9ee;
+      background: #262626;
+      border: 1px solid #2a2a2a;
+      color: #ededed;
     }
-    .btn-secondary:hover { background: #262b33; }
+    .btn-secondary:hover { background: #2a2a2a; }
     .btn-primary {
-      background: #39a7cb;
+      background: #ededed;
       color: #0b1116;
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }

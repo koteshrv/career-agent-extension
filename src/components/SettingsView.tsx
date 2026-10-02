@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ExtensionSettings, AIProvider } from '../types';
+import { ExtensionSettings, AIProvider, AIOperation } from '../types';
 import { saveSettings } from '../lib/storage';
 import { AI_MODELS, AI_KEY_LINKS, testAIConnection, fetchAvailableModels } from '../lib/ai';
 import {
@@ -325,6 +325,36 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             {availableModels.find((m) => m.id === formData.aiModel)?.description || ''}
           </p>
         </div>
+
+        {/* 3b. Advanced: a different model per operation, e.g. a cheap one for triage and a strong one for drafts */}
+        <details className={hasKey ? '' : 'opacity-40 pointer-events-none select-none'}>
+          <summary className="cursor-pointer text-xs font-medium text-foreground select-none">Advanced: model per operation</summary>
+          <p className="mt-1 text-[11px] text-muted-foreground">Leave a row on “Default” to use the model above. Picking a cheaper model for evaluation and a stronger one for drafts is the usual split.</p>
+          <div className="mt-2 grid grid-cols-1 gap-2">
+            {(
+              [
+                ['parse', 'Resume import'],
+                ['draft', 'Resume, cover letter, email'],
+                ['evaluate', 'Job evaluation (For you)'],
+                ['answer', 'Form answers on ATS pages'],
+              ] as Array<[AIOperation, string]>
+            ).map(([op, label]) => (
+              <label key={op} className="flex items-center justify-between gap-2 text-xs">
+                <span className="text-foreground">{label}</span>
+                <select
+                  value={formData.aiModels?.[op] ?? ''}
+                  onChange={(e) => setFormData({ ...formData, aiModels: { ...(formData.aiModels ?? {}), [op]: e.target.value } })}
+                  className="w-[55%] rounded-lg border border-border/80 bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+                >
+                  <option value="">Default</option>
+                  {availableModels.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+        </details>
 
         {/* 4. Tracking Preferences */}
         <div className="pt-2 border-t border-border/60 space-y-2">

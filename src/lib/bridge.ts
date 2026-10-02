@@ -16,6 +16,10 @@ import {
   addResume,
   removeResume,
   setUploadResume,
+  modelFor,
+  exportAll,
+  importAll,
+  type ExportBundle,
 } from './storage';
 import { parseResume, generateMaterial, evaluateJobs, materialSystemPrompt, triageSystemPrompt, type MaterialKind } from './ai';
 import { resumeBodyFromModel, wrapResume, isFullDocument, sanitizeDocument } from './latex/template';
@@ -44,6 +48,8 @@ export type ExternalRequest =
   | { action: 'delete_resume'; payload: { id?: unknown } }
   | { action: 'set_upload_resume'; payload: { id?: unknown } }
   | { action: 'evaluate_jobs'; payload: { jobs?: unknown } }
+  | { action: 'export_data' }
+  | { action: 'import_data'; payload: { bundle?: unknown; mode?: unknown } }
   | { action: 'compile_latex'; payload: { tex?: unknown } };
 
 const FALLBACK_PATTERNS = ['https://careeragent.fyi/*', 'https://*.careeragent.fyi/*'];
@@ -158,8 +164,18 @@ export async function handleExternal(msg: ExternalRequest): Promise<unknown> {
       const settings = await getSettings();
       if (!settings.aiApiKey.trim()) throw new BridgeError('NO_API_KEY', 'AI API Key not configured. Open the CareerAgent extension → Settings to add your key.');
       const started = Date.now();
-      const results = await evaluateJobs(jobs, await getProfile(), settings.aiProvider, settings.aiApiKey, settings.aiModel);
-      return { results, meta: { provider: settings.aiProvider, model: settings.aiModel, durationMs: Date.now() - started, systemPrompt: await triageSystemPrompt() } };
+      const results = await evaluateJobs(jobs, await getProfile(), settings.aiProvider, settings.aiApiKey, modelFor(settings, 'evaluate'));
+      return { results, meta: { provider: settings.aiProvider, model: modelFor(settings, 'evaluate'), durationMs: Date.now() - started, systemPrompt: await triageSystemPrompt() } };
+    }
+    case 'export_data':
+      return exportAll();
+    case 'import_data': {
+      const mode = str(msg.payload?.mode, 10) === 'merge' ? 'merge' : 'replace';
+      const bundle = msg.payload?.bundle as ExportBundle | undefined;
+      if (!bundle || typeof bundle !== 'object') throw new BridgeError('BAD_PAYLOAD', 'bundle is required');
+      if (bundle.profile) bundle.profile = sanitizeProfile(bundle.profile);
+      if (Array.isArray(bundle.applications)) bundle.applications = bundle.applications.map((a) => sanitizeApplication(a));
+      return importAll(bundle, mode);
     }
     case 'save_profile':
       await saveProfile(sanitizeProfile(msg.payload));
@@ -193,8 +209,8 @@ export async function handleExternal(msg: ExternalRequest): Promise<unknown> {
         );
       }
       const started = Date.now();
-      const parsed = await parseResume(fileName, fileData, settings.aiProvider, settings.aiApiKey, settings.aiModel);
-      const meta = { provider: settings.aiProvider, model: settings.aiModel, durationMs: Date.now() - started };
+      const parsed = await parseResume(fileName, fileData, settings.aiProvider, settings.aiApiKey, modelFor(settings, 'parse'));
+      const meta = { provider: settings.aiProvider, model: modelFor(settings, 'parse'), durationMs: Date.now() - started };
       return msg.action === 'parse_resume' ? { ...parsed, meta } : { filters: parsed.filters, meta };
     }
     case 'generate_material': {
@@ -208,9 +224,9 @@ export async function handleExternal(msg: ExternalRequest): Promise<unknown> {
       const baseId = str(msg.payload?.baseResumeId, 64);
       const baseStored = baseId ? (await listResumes()).find((r) => r.id === baseId && r.text) : undefined;
       const base = baseStored && baseStored.kind && baseStored.kind !== 'pdf' ? { kind: baseStored.kind, name: baseStored.name, text: baseStored.text! } : undefined;
-      const out = await generateMaterial(kind, job, await getProfile(), settings.aiProvider, settings.aiApiKey, settings.aiModel, base);
+      const out = await generateMaterial(kind, job, await getProfile(), settings.aiProvider, settings.aiApiKey, modelFor(settings, 'draft'), base);
       const raw = out.text;
-      const meta = { provider: settings.aiProvider, model: settings.aiModel, durationMs: Date.now() - started, systemPrompt: await materialSystemPrompt(kind, base?.kind === 'tex') };
+      const meta = { provider: settings.aiProvider, model: modelFor(settings, 'draft'), durationMs: Date.now() - started, systemPrompt: await materialSystemPrompt(kind, base?.kind === 'tex') };
       if (kind !== 'resume') return { text: raw, meta };
       // Our template: the model writes the body and the preamble is ours. The user's own .tex: the model returns the whole document.
       const tex = base?.kind === 'tex' ? sanitizeDocument(raw) : wrapResume(resumeBodyFromModel(raw));

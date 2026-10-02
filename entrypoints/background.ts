@@ -7,6 +7,7 @@ import {
   saveAnswer,
   findSavedAnswer,
   getResume,
+  modelFor,
   addApplication,
   migrateLegacyData,
 } from '../src/lib/storage';
@@ -113,7 +114,7 @@ export default defineBackground(() => {
         throw new BridgeError('NO_API_KEY', 'AI API Key not configured. Click the CareerAgent extension icon → Settings to add your key.');
       }
       const answer = await withKeepalive(
-        generateAnswerForATSQuestion(String(question ?? '').slice(0, 2000), job, profile, settings.aiProvider, settings.aiApiKey, settings.aiModel)
+        generateAnswerForATSQuestion(String(question ?? '').slice(0, 2000), job, profile, settings.aiProvider, settings.aiApiKey, modelFor(settings, 'answer'))
       );
       return { answer };
     },

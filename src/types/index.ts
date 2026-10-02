@@ -122,10 +122,14 @@ export interface AIModelOption {
   description?: string;
 }
 
+export type AIOperation = 'parse' | 'draft' | 'evaluate' | 'answer';
+
 export interface ExtensionSettings {
   aiProvider: AIProvider;
   aiApiKey: string;
   aiModel: string;
+  /** Optional model per operation; empty or missing means use aiModel. */
+  aiModels?: Partial<Record<AIOperation, string>>;
   autoTrackOnAutofill: boolean;
   /** Add the job to the pipeline as Applied when an application form is submitted on a known ATS. */
   autoTrackOnSubmit: boolean;
