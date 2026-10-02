@@ -1,129 +1,62 @@
-# CareerAgent Extension (v1.0 MVP)
+# CareerAgent Extension
 
-> Cross-browser extension (Chrome & Firefox) using Manifest V3 that powers 1-click ATS application autofill and automatic application tracking for the CareerAgent platform.
+The browser half of [CareerAgent](https://careeragent.fyi): autofills ATS application forms from your profile, tracks what you applied to, and runs every AI feature the dashboard offers with your own API key. It also typesets LaTeX resumes locally with a bundled pdfTeX. Manifest V3, built with [WXT](https://wxt.dev).
 
----
+Architecture for the whole product: [career-agent-web/docs/ARCHITECTURE.md](https://github.com/koteshrv/career-agent-web/blob/main/docs/ARCHITECTURE.md).
 
-## ⚡ Core Design Principles
+## What it does
 
-1. **Zero Fragile DOM Buttons**: Does NOT inject permanent buttons or modify the DOM of third-party sites like LinkedIn or Naukri. When the user opens the extension popup, it automatically extracts the active tab's job details.
-2. **Signed-In Flow**: Users sign in via Google OAuth or email/password against `api.careeragent.fyi`.
-3. **Double Value Loop**: When a user clicks "1-Click Autofill Form" on Greenhouse, Lever, or Ashby, the extension populates the form AND immediately logs that job to the user's application tracking board with a 3-day follow-up reminder.
+- **Autofill** on Greenhouse, Lever, Ashby and Workday from the stored profile, including the resume PDF; saved answers are reused and new questions can be drafted with AI. `Alt+Shift+F` fills without opening the popup.
+- **Tracking**: a submitted application is added to the pipeline with a follow-up reminder; the toolbar badge counts follow-ups due.
+- **AI, with your key**: Gemini, OpenAI, Anthropic or Groq. Models are listed from the provider once a key is entered. Used for resume parsing, tailored resumes, cover letters, cold emails and batch job triage.
+- **LaTeX**: resumes are compiled inside the extension by a WebAssembly pdfTeX with a static TeX Live subset, so no network is needed and nothing leaves the browser.
+- **Bridge** to the dashboard over `externally_connectable`, restricted to `careeragent.fyi`, origin-checked, rate-limited and payload-clamped.
 
----
+No accounts, no CareerAgent servers in the loop: profile, pipeline, resumes and keys live in `chrome.storage.local`.
 
-## 🛠 Tech Stack
+## Layout
 
-* **Framework**: [WXT](https://wxt.dev/) (Vite-based Next-gen WebExtension framework for React + TypeScript)
-* **UI**: React 18, Tailwind CSS, Lucide React icons
-* **Storage**: `chrome.storage.local` with fallback to `browser.storage.local`
-* **Targets**:
-  * Chrome: `npm run build` (Manifest V3)
-  * Firefox: `npm run build:firefox` (Manifest V3)
-
----
-
-## 📂 Project Structure
-
-```
-career-agent-extension/
-├── entrypoints/
-│   ├── popup/
-│   │   ├── index.html           # Popup HTML shell
-│   │   ├── main.tsx             # React mount
-│   │   ├── App.tsx              # Main popup state & navigation
-│   │   └── style.css            # Tailwind directives & theme
-│   ├── background.ts            # Service worker & follow-up badge counter
-│   └── content.ts               # Injected on-demand for ATS autofill
-├── src/
-│   ├── components/
-│   │   ├── Header.tsx           # Brand logo (Orbit) + Auth state + Dark mode
-│   │   ├── JobDetectorCard.tsx  # Shows detected job on active tab
-│   │   ├── ProfileForm.tsx      # Contact, LinkedIn, Resume, Work Auth
-│   │   ├── ApplicationBoard.tsx # Mini Kanban tracker (Applied, Interview, etc.)
-│   │   ├── AutofillBar.tsx      # Trigger autofill on active ATS
-│   │   ├── ManualAddModal.tsx   # Manually add job to tracker
-│   │   └── Icons.tsx            # Custom brand SVG icons
-│   ├── lib/
-│   │   ├── extractors/          # DOM parsing logic
-│   │   │   ├── greenhouse.ts
-│   │   │   ├── lever.ts
-│   │   │   ├── ashby.ts
-│   │   │   ├── linkedin.ts
-│   │   │   ├── generic.ts
-│   │   │   └── index.ts
-│   │   ├── autofill/            # ATS form mapping engine
-│   │   │   ├── helpers.ts       # Native React/Vue event dispatchers
-│   │   │   ├── greenhouse.ts
-│   │   │   ├── lever.ts
-│   │   │   ├── ashby.ts
-│   │   │   └── index.ts
-│   │   ├── api.ts               # Communication with api.careeragent.fyi
-│   │   └── storage.ts           # Type-safe chrome.storage helpers
-│   └── types/
-│       └── index.ts             # CandidateProfile, JobDetails, etc.
-├── tests/
-│   └── ats.test.ts              # Test suite for extractors & autofill
-├── wxt.config.ts
-├── tailwind.config.js
-└── package.json
+```text
+entrypoints/
+  background.ts        service worker: badge, autofill shortcut, popup/content messages, dashboard bridge
+  content.ts           injected on ATS pages: extraction, autofill, submit watch, inline AI helper
+  offscreen/           hidden page hosting the pdfTeX Web Worker (service workers cannot spawn workers)
+  popup/               React popup: This job, Pipeline, Profile, Settings
+src/
+  lib/bridge.ts        actions the dashboard may call, with origin and payload checks
+  lib/messages.ts      typed internal message bus
+  lib/sanitize.ts      deep clamps for everything that crosses a boundary
+  lib/ai/              provider calls, resume parsing, playbooks (career-ops prompts), triage, model listing
+  lib/latex/           template, renderer (latex.md JSON → LaTeX), engine client, offscreen compile
+  lib/autofill/        field matching, saved answers, resume attachment
+  lib/storage.ts       chrome.storage.local access, several resumes with one upload PDF
+prompts/               vendored career-ops playbooks (see prompts/README.md)
+public/latex/          pdfTeX engine (SwiftLaTeX, EPL-2.0)
+public/texlive/        static TeX Live subset (see public/texlive/README.md)
+tests/                 node:test suites
 ```
 
----
+## Develop
 
-## 🚀 Getting Started
-
-### 1. Install Dependencies
 ```bash
 npm install
+npm run dev          # writes .output/chrome-mv3-dev with HMR; load it unpacked at chrome://extensions
+npm run build        # production build in .output/chrome-mv3
+npm test             # node:test suites
 ```
 
-### 2. Run Typecheck & Tests
-```bash
-npm run compile
-npm test
-```
+Pairing a dev build with the dashboard: the dev build has its own extension id. Paste it into the dashboard's Settings → Extension ID (or set `VITE_EXTENSION_ID` in the dashboard's `.env.local`). Dev builds also accept messages from `http://localhost/*`.
 
-### 3. Build for Production
+Reload the extension at chrome://extensions after a build; Chrome caches the manifest and icons until you do.
 
-#### Chrome (Manifest V3)
-```bash
-npm run build
-```
-The output directory will be `.output/chrome-mv3`.
+## Prompts
 
-#### Firefox (Manifest V3)
-```bash
-npm run build:firefox
-```
-The output directory will be `.output/firefox-mv3`.
+AI calls use the career-ops playbooks in `prompts/` verbatim, composed the way the career-agent backend composes them (playbook, then the target job, then the candidate context) and parsed as the JSON their output schema specifies. The exact prompt sent is visible in the dashboard's Settings → AI activity.
 
----
+## Permissions
 
-## 🔌 Loading into Browsers
+`storage`, `unlimitedStorage` (resumes and the TeX bundle cache), `activeTab`, `scripting` (on-demand injection on ATS hosts), `offscreen` (LaTeX worker). Host permissions cover the four ATS families, the job index API and the four AI providers. The content security policy allows WebAssembly for pdfTeX and nothing else beyond self.
 
-### Chrome
-1. Open Google Chrome and navigate to `chrome://extensions/`.
-2. Enable **Developer mode** in the top right corner.
-3. Click **Load unpacked**.
-4. Select the folder for the build you want:
-   * `npm run dev` / `wxt build --mode development` → `.output/chrome-mv3-dev` (allows the dashboard on `http://localhost:*` to reach the extension, no CSP).
-   * `npm run build` → `.output/chrome-mv3` (production manifest: only `https://careeragent.fyi` may talk to the extension).
-5. Copy the extension **ID** shown on the card. The web dashboard needs it (`VITE_EXTENSION_ID`, or the Extension ID field on its Settings page). Each folder gets a different id, and the id changes if the folder moves.
+## License
 
-### Firefox
-1. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`.
-2. Click **Load Temporary Add-on...**.
-3. Select `.output/firefox-mv3/manifest.json`.
-
----
-
-## 🎯 Supported ATS Platforms in v1.0
-
-| ATS / Board | Detection | 1-Click Autofill | Auto Tracking |
-|---|---|---|---|
-| **Greenhouse** | ✅ Yes | ✅ Yes (Fields, custom Qs, Work Auth) | ✅ Yes (3-day follow-up) |
-| **Lever** | ✅ Yes | ✅ Yes (Cards, URLs, Work Auth) | ✅ Yes (3-day follow-up) |
-| **Ashby** | ✅ Yes | ✅ Yes (Name, URLs, Work Auth) | ✅ Yes (3-day follow-up) |
-| **LinkedIn Jobs** | ✅ Yes | 📌 Track Only (Zero fragile DOM) | ✅ Yes (3-day follow-up) |
-| **Indeed / Generic** | ✅ Yes (JSON-LD) | Standard Fields | ✅ Yes (3-day follow-up) |
+MIT for this repository's code. Vendored components keep their own licenses: SwiftLaTeX pdfTeX (EPL-2.0), TeX Live files (their respective free licenses, listed upstream), career-ops prompts (see career-ops.org).
