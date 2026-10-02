@@ -208,13 +208,14 @@ export async function handleExternal(msg: ExternalRequest): Promise<unknown> {
       const baseId = str(msg.payload?.baseResumeId, 64);
       const baseStored = baseId ? (await listResumes()).find((r) => r.id === baseId && r.text) : undefined;
       const base = baseStored && baseStored.kind && baseStored.kind !== 'pdf' ? { kind: baseStored.kind, name: baseStored.name, text: baseStored.text! } : undefined;
-      const raw = await generateMaterial(kind, job, await getProfile(), settings.aiProvider, settings.aiApiKey, settings.aiModel, base);
+      const out = await generateMaterial(kind, job, await getProfile(), settings.aiProvider, settings.aiApiKey, settings.aiModel, base);
+      const raw = out.text;
       const meta = { provider: settings.aiProvider, model: settings.aiModel, durationMs: Date.now() - started, systemPrompt: materialSystemPrompt(kind, base?.kind === 'tex') };
       if (kind !== 'resume') return { text: raw, meta };
       // Our template: the model writes the body and the preamble is ours. The user's own .tex: the model returns the whole document.
       const tex = base?.kind === 'tex' ? sanitizeDocument(raw) : wrapResume(resumeBodyFromModel(raw));
       const compiled = await compileLatexInOffscreen(tex);
-      return { text: tex, pdf: compiled.pdf, log: compiled.pdf ? undefined : compiled.log, meta: { ...meta, durationMs: Date.now() - started } };
+      return { text: tex, pdf: compiled.pdf, log: compiled.pdf ? undefined : compiled.log, changes: out.changes, meta: { ...meta, durationMs: Date.now() - started } };
     }
     case 'compile_latex': {
       const tex = str(msg.payload?.tex, 200_000);
