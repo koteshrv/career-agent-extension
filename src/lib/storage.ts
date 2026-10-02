@@ -278,8 +278,9 @@ export async function saveResume(resume: StoredResume | null): Promise<void> {
 // ==========================================
 // Theme Storage
 // ==========================================
-export async function getTheme(): Promise<'light' | 'dark'> {
-  return await getStorageItem<'light' | 'dark'>(KEYS.theme, 'light');
+/** Stored preference, or null to follow the system. */
+export async function getTheme(): Promise<'light' | 'dark' | null> {
+  return await getStorageItem<'light' | 'dark' | null>(KEYS.theme, null);
 }
 
 export async function saveTheme(theme: 'light' | 'dark'): Promise<void> {

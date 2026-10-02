@@ -23,9 +23,14 @@ export const App: React.FC = () => {
   const [signal, setSignal] = useState<CompanySignal | null>(null);
   const [autofill, setAutofill] = useState<{ busy: boolean; message: string | null; tone: 'success' | 'error' | 'idle' }>({ busy: false, message: null, tone: 'idle' });
 
-  // Theme follows the stored preference; dark by default.
+  // Theme follows the stored preference, else the system, like the dashboard.
   useEffect(() => {
-    getTheme().then((t) => document.documentElement.classList.toggle('dark', t === 'dark'));
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = (t: 'light' | 'dark' | null) => document.documentElement.classList.toggle('dark', (t ?? (mq.matches ? 'dark' : 'light')) === 'dark');
+    getTheme().then(apply);
+    const onChange = () => getTheme().then(apply);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
   }, []);
 
   const refreshApps = useCallback(async () => setApps(await getApplications()), []);
