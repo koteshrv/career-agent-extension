@@ -1,3 +1,4 @@
+import { EVALUATE_SYSTEM, buildEvaluatePrompt, parseEvaluations, type JobForEvaluation, type JobEvaluation } from './evaluate';
 import { AIProvider, AIModelOption, CandidateProfile, JobDetails, ResumeFilters } from '../../types';
 import { sanitizeProfile } from '../sanitize';
 
@@ -538,6 +539,24 @@ function profileBrief(profile: CandidateProfile): string {
     profile.resumeText && `Resume text:\n${profile.resumeText.slice(0, 8000)}`,
   ].filter(Boolean);
   return lines.join('\n');
+}
+
+/** Scores up to 15 postings against the profile in one call. */
+export async function evaluateJobs(
+  jobs: JobForEvaluation[],
+  profile: CandidateProfile,
+  provider: AIProvider,
+  apiKey: string,
+  model: string
+): Promise<JobEvaluation[]> {
+  const raw = await executeAIRequest(provider, apiKey, model, buildEvaluatePrompt(profileBrief(profile), jobs), {
+    systemPrompt: EVALUATE_SYSTEM,
+    json: true,
+    maxTokens: 400 + jobs.length * 220,
+  });
+  const parsed = parseEvaluations(raw, jobs.map((j) => j.id));
+  if (parsed.length === 0) throw new Error('The AI returned no usable evaluations. Try again or pick another model.');
+  return parsed;
 }
 
 /** Drafts a resume, cover letter or cold email for one posting from the profile. Posting text is quoted as data. */

@@ -17,7 +17,7 @@ import {
   removeResume,
   setUploadResume,
 } from './storage';
-import { parseResume, generateMaterial, type MaterialKind } from './ai';
+import { parseResume, generateMaterial, evaluateJobs, type MaterialKind } from './ai';
 import { resumeBodyFromModel, wrapResume, isFullDocument, sanitizeDocument } from './latex/template';
 import { compileLatexInOffscreen } from './latex/compile';
 import { sanitizeProfile, sanitizeApplication, str } from './sanitize';
@@ -43,6 +43,7 @@ export type ExternalRequest =
   | { action: 'get_resume'; payload: { id?: unknown } }
   | { action: 'delete_resume'; payload: { id?: unknown } }
   | { action: 'set_upload_resume'; payload: { id?: unknown } }
+  | { action: 'evaluate_jobs'; payload: { jobs?: unknown } }
   | { action: 'compile_latex'; payload: { tex?: unknown } };
 
 const FALLBACK_PATTERNS = ['https://careeragent.fyi/*', 'https://*.careeragent.fyi/*'];
@@ -144,6 +145,21 @@ export async function handleExternal(msg: ExternalRequest): Promise<unknown> {
       const id = str(msg.payload?.id, 64);
       if (!id) throw new BridgeError('BAD_PAYLOAD', 'id is required');
       return setUploadResume(id);
+    }
+    case 'evaluate_jobs': {
+      const raw = Array.isArray(msg.payload?.jobs) ? (msg.payload.jobs as unknown[]).slice(0, 15) : [];
+      const jobs = raw
+        .map((j) => {
+          const o = (j ?? {}) as Record<string, unknown>;
+          return { id: str(o.id, 64), title: str(o.title, 200), company: str(o.company, 200), location: str(o.location, 120) || undefined, description: str(o.description, 6000) };
+        })
+        .filter((j) => j.id && j.title && j.description);
+      if (jobs.length === 0) throw new BridgeError('BAD_PAYLOAD', 'jobs must list 1-15 postings with id, title and description');
+      const settings = await getSettings();
+      if (!settings.aiApiKey.trim()) throw new BridgeError('NO_API_KEY', 'AI API Key not configured. Open the CareerAgent extension → Settings to add your key.');
+      const started = Date.now();
+      const results = await evaluateJobs(jobs, await getProfile(), settings.aiProvider, settings.aiApiKey, settings.aiModel);
+      return { results, meta: { provider: settings.aiProvider, model: settings.aiModel, durationMs: Date.now() - started } };
     }
     case 'save_profile':
       await saveProfile(sanitizeProfile(msg.payload));
