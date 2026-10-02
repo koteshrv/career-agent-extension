@@ -1,11 +1,11 @@
 import React from 'react';
 
-/** The CareerAgent mark: three steps with a flag on top. Theme-aware via tokens. */
+/** The CareerAgent mark: a line from one point to a higher one. Theme-aware via tokens. */
 export const Mark: React.FC<{ size?: number; className?: string }> = ({ size = 20, className = '' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={`shrink-0 ${className}`}>
-    <path d="M2 19h6v-5h6v-5h6v13H2z" fill="hsl(var(--primary))" />
-    <path d="M17 9V2.5" stroke="hsl(var(--foreground))" strokeWidth="1.6" strokeLinecap="round" />
-    <path d="M17.8 2.5h5.2l-1.6 2 1.6 2h-5.2z" fill="#f5a524" />
+    <path d="M5.5 18.5 16 8" stroke="hsl(var(--primary))" strokeWidth="3" strokeLinecap="round" />
+    <circle cx="5.5" cy="18.5" r="2.4" fill="hsl(var(--foreground))" />
+    <circle cx="17.5" cy="6.5" r="4" fill="hsl(var(--primary))" />
   </svg>
 );
 
