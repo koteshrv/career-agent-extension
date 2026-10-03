@@ -1,23 +1,41 @@
 {
-  "prompts": {},
+  "prompts": {
+    "_comment": "Populate these keys (e.g., 'triage', 'cover') to override the bundled prompts OTA without waiting for Chrome Web Store review."
+  },
   "selectors": {
-    "linkedin": {
-      "container": ".jobs-description__content",
-      "title": ".job-details-jobs-unified-top-card__job-title",
-      "company": ".job-details-jobs-unified-top-card__company-name",
-      "urlStripRegex": "\\?.*$"
+    "boards": {
+      "linkedin": {
+        "container": ".jobs-description__content",
+        "title": ".job-details-jobs-unified-top-card__job-title",
+        "company": ".job-details-jobs-unified-top-card__company-name",
+        "urlStripRegex": "\\?.*$"
+      },
+      "naukri": {
+        "container": ".job-desc",
+        "title": ".job-title",
+        "company": ".jd-header-comp-name",
+        "urlStripRegex": "\\?.*$"
+      },
+      "indeed": {
+        "container": "#jobDescriptionText",
+        "title": ".jobsearch-JobInfoHeader-title",
+        "company": "div[data-company-name='true']",
+        "urlStripRegex": "\\?.*$"
+      }
     },
-    "naukri": {
-      "container": ".job-desc",
-      "title": ".job-title",
-      "company": ".jd-header-comp-name",
-      "urlStripRegex": "\\?.*$"
-    },
-    "indeed": {
-      "container": "#jobDescriptionText",
-      "title": ".jobsearch-JobInfoHeader-title",
-      "company": "div[data-company-name='true']",
-      "urlStripRegex": "\\?.*$"
+    "autofill": {
+      "greenhouse": {
+        "form": "#application_form",
+        "inputs": ".field:not(.hidden) input, .field:not(.hidden) select, .field:not(.hidden) textarea"
+      },
+      "lever": {
+        "form": "#application-form",
+        "inputs": ".application-field input, .application-field select, .application-field textarea"
+      },
+      "workday": {
+        "form": "[data-automation-id='workday-form']",
+        "inputs": "[data-automation-id^='form-field'] input, [data-automation-id^='form-field'] select"
+      }
     }
   },
   "telemetry": {
