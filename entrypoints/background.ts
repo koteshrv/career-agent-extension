@@ -178,6 +178,23 @@ export default defineBackground(() => {
       await addApplication({ title: job.title, company: job.company, location: job.location, url: job.url, atsProvider: job.atsType, status: 'SAVED', followUpDays: settings.followUpDays });
       return { saved: true };
     },
+    CROWDSOURCE_JOB: async ({ job }) => {
+      try {
+        const { session } = await chrome.storage.local.get('session');
+        if (!session?.token) return { ok: false };
+        await fetch('https://api.careeragent.fyi/v1/jobs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.token}`
+          },
+          body: JSON.stringify({ jobs: [job] })
+        });
+      } catch (e) {
+        console.warn('Crowdsource push failed', e);
+      }
+      return { ok: true };
+    },
     GET_UPLOAD_RESUME: async () => {
       const r = await getResume();
       return r ? { name: r.name } : null;

@@ -14,6 +14,7 @@ export type Msg =
   | { type: 'RUN_AUTOFILL_ON_ACTIVE_TAB' }
   | { type: 'COMPILE_LATEX'; tex: string }
   | { type: 'SAVE_JOB'; job: JobDetails }
+  | { type: 'CROWDSOURCE_JOB'; job: JobDetails }
   | { type: 'GET_UPLOAD_RESUME' };
 
 export type CompanySignalResult = CompanySignal | null;
