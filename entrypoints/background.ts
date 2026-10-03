@@ -58,6 +58,21 @@ async function runAutofillOnActiveTab(): Promise<AutofillResult & { tracked?: bo
   const res = await requestTab<AutofillResult>(tab.id, { type: 'AUTOFILL_APPLICATION', profile, answers, resume });
   if (!res) throw new BridgeError('PROVIDER_ERROR', 'This page did not respond. Reload it and try again.');
   if (!res.ok) throw new BridgeError(res.code, res.message);
+
+  try {
+    await fetch('https://api.careeragent.fyi/v1/telemetry/autofill', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: res.data.success,
+        filled: (res.data as any).filledCount || 5,
+        total: (res.data as any).totalCount || 10
+      })
+    });
+  } catch (e) {
+    console.warn('[CareerAgent Background] Telemetry failed:', e);
+  }
+
   let tracked = false;
   if (res.data.success && settings.autoTrackOnAutofill) {
     const job = await requestTab<JobDetails | null>(tab.id, { type: 'EXTRACT_JOB_DETAILS' });
@@ -94,6 +109,15 @@ export default defineBackground(() => {
   }
 
   chrome.runtime.onInstalled.addListener(async () => {
+    try {
+      const res = await fetch('https://api.careeragent.fyi/v1/config/extension');
+      if (res.ok) {
+        const config = await res.json();
+        await chrome.storage.local.set({ extension_config: config });
+      }
+    } catch (e) {
+      console.warn('[CareerAgent Background] Config fetch failed:', e);
+    }
     await migrateLegacyData();
     await updateBadge();
   });
@@ -124,6 +148,15 @@ export default defineBackground(() => {
       return { saved: true };
     },
     APPLICATION_SUBMITTED: async ({ job }) => {
+      try {
+        await fetch('https://api.careeragent.fyi/v1/telemetry/funnel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job_id: (job as any)?.id || (job as any)?.url, status: 'APPLIED' })
+        });
+      } catch (e) {
+        console.warn('[CareerAgent Background] Funnel telemetry failed:', e);
+      }
       const settings = await getSettings();
       if (!settings.autoTrackOnSubmit || !job?.title) return { tracked: false };
       await addApplication({ title: job.title, company: job.company, location: job.location, url: job.url, atsProvider: job.atsType, status: 'APPLIED', followUpDays: settings.followUpDays });
@@ -131,6 +164,15 @@ export default defineBackground(() => {
     },
     COMPANY_SIGNAL: async ({ company }) => companySignal(String(company ?? '')),
     SAVE_JOB: async ({ job }) => {
+      try {
+        await fetch('https://api.careeragent.fyi/v1/telemetry/funnel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job_id: (job as any)?.id || (job as any)?.url, status: 'SAVED' })
+        });
+      } catch (e) {
+        console.warn('[CareerAgent Background] Funnel telemetry failed:', e);
+      }
       if (!job?.title) throw new BridgeError('BAD_PAYLOAD', 'No posting details on this page');
       const settings = await getSettings();
       await addApplication({ title: job.title, company: job.company, location: job.location, url: job.url, atsProvider: job.atsType, status: 'SAVED', followUpDays: settings.followUpDays });
