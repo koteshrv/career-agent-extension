@@ -1,4 +1,27 @@
 {
   "prompts": {},
-  "selectors": {}
+  "selectors": {
+    "linkedin": {
+      "container": ".jobs-description__content",
+      "title": ".job-details-jobs-unified-top-card__job-title",
+      "company": ".job-details-jobs-unified-top-card__company-name",
+      "urlStripRegex": "\\?.*$"
+    },
+    "naukri": {
+      "container": ".job-desc",
+      "title": ".job-title",
+      "company": ".jd-header-comp-name",
+      "urlStripRegex": "\\?.*$"
+    },
+    "indeed": {
+      "container": "#jobDescriptionText",
+      "title": ".jobsearch-JobInfoHeader-title",
+      "company": "div[data-company-name='true']",
+      "urlStripRegex": "\\?.*$"
+    }
+  },
+  "telemetry": {
+    "enabled": true,
+    "batchSize": 10
+  }
 }
