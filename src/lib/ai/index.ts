@@ -554,7 +554,7 @@ export async function triageSystemPrompt(): Promise<string> {
   return (await getPlaybooks()).triage;
 }
 
-/** Scores up to 15 postings against the profile in one call. */
+/** Scores up to 20 postings against the profile in one call. */
 export async function evaluateJobs(
   jobs: JobForEvaluation[],
   profile: CandidateProfile,

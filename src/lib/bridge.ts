@@ -153,14 +153,14 @@ export async function handleExternal(msg: ExternalRequest): Promise<unknown> {
       return setUploadResume(id);
     }
     case 'evaluate_jobs': {
-      const raw = Array.isArray(msg.payload?.jobs) ? (msg.payload.jobs as unknown[]).slice(0, 15) : [];
+      const raw = Array.isArray(msg.payload?.jobs) ? (msg.payload.jobs as unknown[]).slice(0, 20) : [];
       const jobs = raw
         .map((j) => {
           const o = (j ?? {}) as Record<string, unknown>;
-          return { id: str(o.id, 64), title: str(o.title, 200), company: str(o.company, 200), location: str(o.location, 120) || undefined, description: str(o.description, 6000) };
+          return { id: str(o.id, 64), title: str(o.title, 200), company: str(o.company, 200), location: str(o.location, 120) || undefined, description: str(o.description, 4000) };
         })
         .filter((j) => j.id && j.title && j.description);
-      if (jobs.length === 0) throw new BridgeError('BAD_PAYLOAD', 'jobs must list 1-15 postings with id, title and description');
+      if (jobs.length === 0) throw new BridgeError('BAD_PAYLOAD', 'jobs must list 1-20 postings with id, title and description');
       const settings = await getSettings();
       if (!settings.aiApiKey.trim()) throw new BridgeError('NO_API_KEY', 'AI API Key not configured. Open the CareerAgent extension → Settings to add your key.');
       const started = Date.now();
