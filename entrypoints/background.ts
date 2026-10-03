@@ -110,7 +110,7 @@ export default defineBackground(() => {
 
   chrome.runtime.onInstalled.addListener(async () => {
     try {
-      const res = await fetch('https://api.careeragent.fyi/v1/config/extension');
+      const res = await fetch('https://raw.githubusercontent.com/koteshrv/career-agent-extension/main/config/extension.json');
       if (res.ok) {
         const config = await res.json();
         await chrome.storage.local.set({ extension_config: config });
